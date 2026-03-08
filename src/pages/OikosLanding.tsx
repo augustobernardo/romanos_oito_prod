@@ -46,7 +46,7 @@ const OikosLanding = () => {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 px-4 py-12">
-      <div className="absolute right-4 top-4 flex flex-col items-center gap-4 sm:right-6 sm:top-6">
+      <div className="absolute right-4 top-4 sm:right-6 sm:top-6">
         <Button
           variant="ghost"
           size="icon"
@@ -60,21 +60,23 @@ const OikosLanding = () => {
             <Moon className="h-5 w-5 text-primary" />
           )}
         </Button>
+      </div>
+
+      <div className="flex flex-col items-center gap-8 text-center">
         <Button variant="outline" size="sm" asChild>
           <Link to="/">
             <Home className="mr-2 h-4 w-4" />
             Home
           </Link>
         </Button>
-      </div>
-
-      <div className="text-center">
-        <h1 className="font-display text-3xl font-bold text-foreground md:text-4xl">
-          Inscrições em Breve.
-        </h1>
-        <p className="mt-4 text-xl text-muted-foreground md:text-2xl">
-          14 de março
-        </p>
+        <div>
+          <h1 className="font-display text-3xl font-bold text-foreground md:text-4xl">
+            Inscrições em Breve.
+          </h1>
+          <p className="mt-4 text-xl text-muted-foreground md:text-2xl">
+            14 de março
+          </p>
+        </div>
       </div>
     </div>
   );
