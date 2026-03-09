@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Home from "./pages/Home";
+import OikosLanding from "./pages/OikosLanding";
 import Events from "./pages/Events";
 import EventoOikos2026 from "./pages/EventoOikos2026";
 import CheckoutOikos2026 from "./pages/CheckoutOikos2026";
@@ -29,7 +30,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/eventos" element={<Events />} />
+            <Route path="/oikos" element={<OikosLanding />} />
+            {/* <Route path="/eventos" element={<Events />} /> -> Temporarily removed */}
             <Route path="/eventos/oikos-2026" element={<EventoOikos2026 />} />
             <Route path="/eventos/oikos-2026/checkout" element={<CheckoutOikos2026 />} />
             <Route path="/eventos/oikos-2026/inscricao-realizada" element={<InscricaoRealizadaOikos2026 />} />

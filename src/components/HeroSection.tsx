@@ -31,9 +31,9 @@ const HeroSection = () => {
             <p className="mt-2 text-sm font-medium text-primary">— Romanos 8, 15-19</p>
             
             <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center lg:justify-start">
-              <Button asChild size="lg" className="shadow-soft">
+              {/* <Button asChild size="lg" className="shadow-soft">
                 <Link to="/eventos">Eventos</Link>
-              </Button>
+              </Button>  --> Temporarily removed */}
               {/* <Button variant="outline" size="lg" asChild>
                 <a href="#quem-somos">Saiba Mais</a>
               </Button> */}

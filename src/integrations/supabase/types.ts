@@ -65,7 +65,6 @@ export type Database = {
           fez_retiro_outro: string | null
           grau_parentesco_emergencia: string
           id: string
-          idade: number | null
           instagram: string
           is_catolico: string
           is_catolico_outro: string | null
@@ -97,7 +96,6 @@ export type Database = {
           fez_retiro_outro?: string | null
           grau_parentesco_emergencia: string
           id?: string
-          idade?: number | null
           instagram: string
           is_catolico: string
           is_catolico_outro?: string | null
@@ -129,7 +127,6 @@ export type Database = {
           fez_retiro_outro?: string | null
           grau_parentesco_emergencia?: string
           id?: string
-          idade?: number | null
           instagram?: string
           is_catolico?: string
           is_catolico_outro?: string | null

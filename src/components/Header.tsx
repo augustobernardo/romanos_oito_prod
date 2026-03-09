@@ -7,7 +7,7 @@ import { Link, useLocation } from "react-router-dom";
 const navLinks = [
   { href: "/", label: "Início" },
   { href: "/#quem-somos", label: "Quem Somos" },
-  { href: "/eventos", label: "Eventos" },
+  // { href: "/eventos", label: "Eventos" }, -> Temporarily removed
 ];
 
 const Header = () => {
