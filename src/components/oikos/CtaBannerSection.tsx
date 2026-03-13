@@ -19,14 +19,6 @@ const CtaBannerSection = () => {
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-display text-[#7EF17F] max-w-3xl uppercase font-bold leading-tight tracking-tight">
             Vamos viver o melhor <br /> fim de semana da sua vida?
           </h2>
-
-          {/* <a
-            href="#inscricao"
-            className="relative inline-flex items-center justify-center px-10 py-4 rounded-full border-2 border-white text-white font-bold text-lg md:text-xl uppercase tracking-widest transition-all duration-300 hover:bg-white hover:text-black hover:shadow-[0_0_30px_rgba(255,255,255,0.55)]"
-          >
-            Fazer minha inscrição!
-          </a> */}
-                  {/* Speech bubble CTA */}
         <a
           href="#inscricao"
           // className="relative inline-flex items-center gap-2 rounded-full px-8 py-3 font-display font-bold uppercase text-sm md:text-base transition-all hover:scale-105 bg-white text-black"
