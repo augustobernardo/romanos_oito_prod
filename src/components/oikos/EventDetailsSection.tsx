@@ -1,4 +1,4 @@
-import praySquareImg from "@/assets/oikos/FOTO_VITORIA.png";
+// import praySquareImg from "@/assets/oikos/FOTO_VITORIA.png";
 
 const EventDetailsSection = () => {
   return (
@@ -6,11 +6,9 @@ const EventDetailsSection = () => {
       className="w-full rounded-3xl overflow-hidden"
       style={{ backgroundColor: "#fff9e1" }}
     >
-      <div className="mx-auto max-w-[1200px] px-6 py-16 md:py-20 lg:py-24">
+      {/* <div className="mx-auto max-w-[1200px] px-6 py-16 md:py-20 lg:py-24">
         <div className="grid grid-cols-1 md:grid-cols-[55%_45%] gap-8 md:gap-12 items-start">
-          {/* Left column - Event info */}
           <div className="flex flex-col justify-start h-full max-w-[540px] mx-auto md:mx-0">
-            {/* Date badges — on mobile, age block stays beside them in one row */}
             <div className="flex items-center gap-3 md:gap-4 flex-nowrap md:flex-wrap">
               <div className="flex items-center gap-2 md:gap-4 shrink-0">
                 {["5", "6", "7"].map((day) => (
@@ -21,7 +19,6 @@ const EventDetailsSection = () => {
                   </div>
                 ))}
               </div>
-              {/* Age block: only on mobile, to the right of date badges */}
               <div className="flex flex-col items-start md:hidden shrink-0">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-[#393939] leading-tight">
                   NOVA FAIXA ETÁRIA
@@ -35,7 +32,6 @@ const EventDetailsSection = () => {
               </div>
             </div>
 
-            {/* Month/Year — on desktop, age block stays here */}
             <div className="flex items-start gap-10 md:gap-14">
               <div className="flex items-baseline gap-4">
                 <span className="font-display text-6xl text-[#393939]">
@@ -60,7 +56,6 @@ const EventDetailsSection = () => {
               </div>
             </div>
 
-            {/* Location */}
             <p className="text-xs md:text-sm uppercase tracking-wider mb-3 text-[#393939]">
               LOCAL: CENTRO DE FORMAÇÃO DIOCESANO{" "}
               <span className="font-bold text-[#393939]">CENTREL</span>
@@ -75,7 +70,6 @@ const EventDetailsSection = () => {
             </p>
           </div>
 
-          {/* Right column - Image */}
           <div className="flex justify-center md:justify-end">
             <div
               className="w-full max-w-[560px] rounded-[24px] overflow-hidden shadow-xl"
@@ -90,7 +84,7 @@ const EventDetailsSection = () => {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
     </section>
   );
 };

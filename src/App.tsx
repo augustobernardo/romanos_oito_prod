@@ -32,10 +32,10 @@ const App = () => (
             <Route path="/" element={<Home />} />
             <Route path="/oikos" element={<OikosLanding />} />
             {/* <Route path="/eventos" element={<Events />} /> -> Temporarily removed */}
-            <Route path="/eventos/oikos-2026" element={<EventoOikos2026 />} />
-            <Route path="/eventos/oikos-2026/checkout" element={<CheckoutOikos2026 />} />
+            {/* <Route path="/eventos/oikos-2026" element={<EventoOikos2026 />} /> */}
+            {/* <Route path="/eventos/oikos-2026/checkout" element={<CheckoutOikos2026 />} />
             <Route path="/eventos/oikos-2026/inscricao-realizada" element={<InscricaoRealizadaOikos2026 />} />
-            <Route path="/eventos/oikos-2026/resultado" element={<InscricaoResultado />} />
+            <Route path="/eventos/oikos-2026/resultado" element={<InscricaoResultado />} /> */}
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/eventos" element={<ProtectedRoute><AdminEventos /></ProtectedRoute>} />
