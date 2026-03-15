@@ -11,7 +11,11 @@ import { useToast } from "@/hooks/use-toast";
 import supabase from "@/utils/supabase";
 
 import { formSchema, type FormData } from "@/components/form/types";
-import { useLotes, getLoteDisponivel, getLoteDisponivelPaymentLink } from "@/components/form/useLotes";
+import {
+  useLotes,
+  getLoteDisponivel,
+  getLoteDisponivelPaymentLink,
+} from "@/components/form/useLotes";
 import LoteCard from "@/components/form/LoteCard";
 import DadosPessoaisSection from "@/components/form/DadosPessoaisSection";
 import PaisResponsaveisSection from "@/components/form/PaisResponsaveisSection";
@@ -78,11 +82,14 @@ const OikosFormSection = () => {
   });
 
   const goToPaymentLink = () => {
-    const selectedLotePaymentId = getLoteDisponivelPaymentLink(lotes, loteSelecionado!);
+    const selectedLotePaymentId = getLoteDisponivelPaymentLink(
+      lotes,
+      loteSelecionado!,
+    );
     if (selectedLotePaymentId) {
-      const selectedLoteId = selectedLotePaymentId; 
+      const selectedLoteId = selectedLotePaymentId;
       const paymentLink = `${STRIPE_PAYMENT_LINK_BASE_URL}${selectedLoteId}`;
-  
+
       const url = new URL(paymentLink);
       window.location.href = url.toString();
     }
@@ -165,7 +172,7 @@ const OikosFormSection = () => {
   //     </div>
   //   );
   // }
- if (isSubmitted) {
+  if (isSubmitted) {
     return (
       <div className="flex-1 px-4 py-8 md:px-6">
         <div className="mx-auto max-w-2xl space-y-8">
@@ -187,20 +194,31 @@ const OikosFormSection = () => {
               onClick={() => setPaymentMethod("credit")}
               className={`
                 cursor-pointer rounded-lg border-2 p-6 transition-all
-                ${paymentMethod === "credit" 
-                  ? "border-[hsl(195,100%,45%)] bg-[#fffbef]" 
-                  : "border-gray-200 bg-white hover:border-gray-300"
+                ${
+                  paymentMethod === "credit"
+                    ? "border-[hsl(195,100%,45%)] bg-[#fffbef]"
+                    : "border-gray-200 bg-white hover:border-gray-300"
                 }
               `}
             >
               <div className="flex flex-col items-center gap-3">
-                <CreditCard 
-                  className="h-8 w-8" 
-                  style={{ color: paymentMethod === "credit" ? "hsl(195,100%,45%)" : "#9ca3af" }}
+                <CreditCard
+                  className="h-8 w-8"
+                  style={{
+                    color:
+                      paymentMethod === "credit"
+                        ? "hsl(195,100%,45%)"
+                        : "#9ca3af",
+                  }}
                 />
-                <span 
+                <span
                   className="font-medium"
-                  style={{ color: paymentMethod === "credit" ? "hsl(195,100%,45%)" : "#393939" }}
+                  style={{
+                    color:
+                      paymentMethod === "credit"
+                        ? "hsl(195,100%,45%)"
+                        : "#393939",
+                  }}
                 >
                   Cartão
                 </span>
@@ -214,20 +232,27 @@ const OikosFormSection = () => {
               onClick={() => setPaymentMethod("pix")}
               className={`
                 cursor-pointer rounded-lg border-2 p-6 transition-all
-                ${paymentMethod === "pix" 
-                  ? "border-[hsl(195,100%,45%)] bg-[#fffbef]" 
-                  : "border-gray-200 bg-white hover:border-gray-300"
+                ${
+                  paymentMethod === "pix"
+                    ? "border-[hsl(195,100%,45%)] bg-[#fffbef]"
+                    : "border-gray-200 bg-white hover:border-gray-300"
                 }
               `}
             >
               <div className="flex flex-col items-center gap-3">
-                <QrCode 
-                  className="h-8 w-8" 
-                  style={{ color: paymentMethod === "pix" ? "hsl(195,100%,45%)" : "#9ca3af" }}
+                <QrCode
+                  className="h-8 w-8"
+                  style={{
+                    color:
+                      paymentMethod === "pix" ? "hsl(195,100%,45%)" : "#9ca3af",
+                  }}
                 />
-                <span 
+                <span
                   className="font-medium"
-                  style={{ color: paymentMethod === "pix" ? "hsl(195,100%,45%)" : "#393939" }}
+                  style={{
+                    color:
+                      paymentMethod === "pix" ? "hsl(195,100%,45%)" : "#393939",
+                  }}
                 >
                   PIX
                 </span>
@@ -244,15 +269,19 @@ const OikosFormSection = () => {
               className="flex flex-col items-center gap-6 rounded-lg border bg-[#fffbef] p-8"
             >
               <div className="flex h-14 w-14 items-center justify-center rounded-full">
-                <CreditCard className="h-7 w-7 text-primary" style={{ color: 'hsl(195 100% 45%)' }} />
+                <CreditCard
+                  className="h-7 w-7 text-primary"
+                  style={{ color: "hsl(195 100% 45%)" }}
+                />
               </div>
               <p className="text-center text-muted-foreground">
-                Você será redirecionado para uma página segura para realizar o pagamento com cartão.
+                Você será redirecionado para uma página segura para realizar o
+                pagamento com cartão.
               </p>
               <Button
                 size="lg"
                 className="w-full max-w-xs hover:bg-[#faf7ef]/90 text-white"
-                style={{ backgroundColor: 'hsl(195 100% 45%)' }}
+                style={{ backgroundColor: "hsl(195 100% 45%)" }}
                 onClick={goToPaymentLink}
               >
                 Ir para pagamento
@@ -268,9 +297,12 @@ const OikosFormSection = () => {
               className="flex flex-col items-center gap-6 rounded-lg border bg-[#fffbef] p-8"
             >
               <div className="flex h-14 w-14 items-center justify-center rounded-full">
-                <QrCode className="h-7 w-7 text-primary" style={{ color: 'hsl(195 100% 45%)' }} />
+                <QrCode
+                  className="h-7 w-7 text-primary"
+                  style={{ color: "hsl(195 100% 45%)" }}
+                />
               </div>
-              
+
               {/* Espaço para QR Code */}
               <div className="w-full max-w-[250px] aspect-square bg-white rounded-lg border-2 shadow-md flex items-center justify-center">
                 <img src={qrCodePix} className="w-full h-full" />
@@ -294,7 +326,8 @@ const OikosFormSection = () => {
                       navigator.clipboard.writeText("177.169.606-01");
                       toast({
                         title: "Chave copiada!",
-                        description: "A chave PIX foi copiada para a área de transferência.",
+                        description:
+                          "A chave PIX foi copiada para a área de transferência.",
                       });
                     }}
                   >
@@ -303,8 +336,19 @@ const OikosFormSection = () => {
                 </div>
               </div>
 
+              {/* Nome do recebedor */}
+              <div className="w-full max-w-sm flex flex-col items-center gap-1">
+                <p className="text-sm font-medium text-[#393939] text-center">
+                  Nome do recebedor(a):
+                </p>
+                <div className="bg-white rounded-md border px-3 py-2 text-md font-bold text-black text-center">
+                  Ana Clara Gonçalves dos Santos
+                </div>
+              </div>
+
               <p className="text-center text-sm text-muted-foreground mt-2">
-                Após realizar o pagamento, sua inscrição será confirmada em até 5 minutos.
+                Fique tranquilo! Após realizar o pagamento, sua inscrição será
+                confirmada pela nossa equipe em nosso sistema em até 5 minutos.
               </p>
             </motion.div>
           )}
@@ -313,10 +357,17 @@ const OikosFormSection = () => {
     );
   }
   return (
-    <section id="inscricao" className="w-full" style={{ backgroundColor: "#fff9e1" }}>
+    <section
+      id="inscricao"
+      className="w-full"
+      style={{ backgroundColor: "#fff9e1" }}
+    >
       <div className="mx-auto max-w-[1200px] px-4 md:px-6 py-16 md:py-20 lg:py-24">
         {/* Lote Selection */}
-        <h2 className="font-display text-2xl md:text-3xl font-bold uppercase text-center mb-2" style={{ color: "#393939" }}>
+        <h2
+          className="font-display text-2xl md:text-3xl font-bold uppercase text-center mb-2"
+          style={{ color: "#393939" }}
+        >
           SELECIONE O LOTE
         </h2>
         <p className="text-center text-sm mb-10" style={{ color: "#393939" }}>
@@ -336,7 +387,10 @@ const OikosFormSection = () => {
         </div>
 
         {!loteDisponivelId && (
-          <p className="text-center text-sm font-medium mb-8" style={{ color: "#e53e3e" }}>
+          <p
+            className="text-center text-sm font-medium mb-8"
+            style={{ color: "#e53e3e" }}
+          >
             Todos os lotes estão esgotados. As inscrições foram encerradas.
           </p>
         )}
@@ -349,12 +403,18 @@ const OikosFormSection = () => {
             transition={{ duration: 0.4 }}
             className="oikos-form mx-auto max-w-3xl rounded-lg p-1"
           >
-            <h3 className="mb-8 text-center font-display text-xl md:text-3xl uppercase" style={{ color: "#393939" }}>
+            <h3
+              className="mb-8 text-center font-display text-xl md:text-3xl uppercase"
+              style={{ color: "#393939" }}
+            >
               Formulário de Inscrição
             </h3>
 
             <Form {...form}>
-              <form className="space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
+              <form
+                className="space-y-6"
+                onSubmit={form.handleSubmit(handleSubmit)}
+              >
                 <DadosPessoaisSection form={form} />
                 <PaisResponsaveisSection form={form} />
                 <VidaIgrejaSection form={form} />
