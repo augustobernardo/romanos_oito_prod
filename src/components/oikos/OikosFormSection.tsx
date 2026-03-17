@@ -3,7 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
-import { Copy, CreditCard, QrCode } from "lucide-react";
+import {
+  CheckCircle,
+  Copy,
+  CreditCard,
+  QrCode,
+  Upload,
+  X,
+  ArrowLeft,
+  Home,
+  Calendar,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
@@ -39,13 +49,25 @@ const calculateAge = (birthday: string) => {
 };
 
 type PaymentMethod = "credit" | "pix" | null;
+type PaymentStep = "form" | "payment" | "confirmation";
+
+const PIX_DATA = {
+  key: "177.169.606-01",
+  receiverName: "Ana Clara Gonçalves dos Santos",
+};
 
 const OikosFormSection = () => {
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [currentStep, setCurrentStep] = useState<PaymentStep>("form");
   const [loteSelecionado, setLoteSelecionado] = useState<number | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(null);
+  const [inscricaoId, setInscricaoId] = useState<number | null>(null);
+  const [comprovanteFile, setComprovanteFile] = useState<File | null>(null);
+  const [comprovantePreview, setComprovantePreview] = useState<string | null>(
+    null,
+  );
+  const [uploading, setUploading] = useState(false);
+  const [formData, setFormData] = useState<FormData | null>(null);
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const { lotes, loading: lotesLoading } = useLotes();
   const loteDisponivelId = getLoteDisponivel(lotes);
@@ -95,87 +117,316 @@ const OikosFormSection = () => {
     }
   };
 
-  const handleSubmit = async (data: FormData) => {
-    const { error } = await supabase.from("inscricoes").insert({
-      lote_id: loteSelecionado!,
-      evento_id: "a4a01143-0560-44ea-88cd-735f7b29bf25",
-      nome: data.nome,
-      data_nascimento: data.dataNascimento,
-      telefone: data.telefone.replace(/\D/g, ""),
-      instagram: data.instagram,
-      comunidade: data.comunidade,
-      cidade_estado: data.cidadeEstado,
-      endereco_completo: data.enderecoCompleto,
-      como_conheceu: data.comoConheceu,
-      como_conheceu_outro: data.comoConheceuOutro || null,
-      nome_mae: data.nomeMae,
-      numero_mae: data.numeroMae,
-      nome_pai: data.nomePai,
-      numero_pai: data.numeroPai,
-      numero_responsavel_proximo: data.numeroResponsavelProximo || null,
-      is_catolico: data.isCatolico,
-      is_catolico_outro: data.isCatolicoOutro || null,
-      participa_movimento: data.participaMovimento,
-      fez_retiro: data.fezRetiro,
-      fez_retiro_outro: data.fezRetiroOutro || null,
-      nome_pessoa_emergencia: data.nomePessoaEmergencia,
-      grau_parentesco_emergencia: data.grauParentescoEmergencia,
-      numero_emergencia: data.numeroEmergencia,
-      tamanho_camisa: data.tamanhoCamisa,
-      expectativa_oikos: data.expectativaOikos || null,
-      idade: calculateAge(data.dataNascimento),
-    });
+  // Função para salvar a inscrição no banco
+  const salvarInscricao = async (data: FormData, method: PaymentMethod) => {
+    const { data: insertedData, error } = await supabase
+      .from("inscricoes")
+      .insert({
+        lote_id: loteSelecionado!,
+        evento_id: "a4a01143-0560-44ea-88cd-735f7b29bf25",
+        nome: data.nome,
+        data_nascimento: data.dataNascimento,
+        telefone: data.telefone.replace(/\D/g, ""),
+        instagram: data.instagram,
+        comunidade: data.comunidade,
+        cidade_estado: data.cidadeEstado,
+        endereco_completo: data.enderecoCompleto,
+        como_conheceu: data.comoConheceu,
+        como_conheceu_outro: data.comoConheceuOutro || null,
+        nome_mae: data.nomeMae,
+        numero_mae: data.numeroMae,
+        nome_pai: data.nomePai,
+        numero_pai: data.numeroPai,
+        numero_responsavel_proximo: data.numeroResponsavelProximo || null,
+        is_catolico: data.isCatolico,
+        is_catolico_outro: data.isCatolicoOutro || null,
+        participa_movimento: data.participaMovimento,
+        fez_retiro: data.fezRetiro,
+        fez_retiro_outro: data.fezRetiroOutro || null,
+        nome_pessoa_emergencia: data.nomePessoaEmergencia,
+        grau_parentesco_emergencia: data.grauParentescoEmergencia,
+        numero_emergencia: data.numeroEmergencia,
+        tamanho_camisa: data.tamanhoCamisa,
+        expectativa_oikos: data.expectativaOikos || null,
+        idade: calculateAge(data.dataNascimento),
+        status: "processando",
+        metodo_pagamento: method,
+      })
+      .select()
+      .single();
 
     if (error) {
+      throw error;
+    }
+
+    return insertedData.id;
+  };
+
+  // Função para fazer upload do comprovante
+  const uploadComprovante = async (file: File, id: number) => {
+    // Criar um nome único para o arquivo
+    const fileExt = file.name.split(".").pop();
+    const fileName = `comprovante_${id}_${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    // Fazer upload para o Supabase Storage no bucket Comprovantes_OIKOS
+    const { error: uploadError } = await supabase.storage
+      .from("Comprovantes_OIKOS")
+      .upload(filePath, file);
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    // Obter a URL pública do arquivo
+    const { data: urlData } = supabase.storage
+      .from("Comprovantes_OIKOS")
+      .getPublicUrl(filePath);
+
+    // Atualizar a inscrição com a URL do comprovante
+    const { error: updateError } = await supabase
+      .from("inscricoes")
+      .update({
+        comprovante_url: urlData.publicUrl,
+      })
+      .eq("id", id);
+
+    if (updateError) {
+      throw updateError;
+    }
+  };
+
+  const handleFormSubmit = async (data: FormData) => {
+    // Apenas avança para a tela de pagamento, sem salvar no banco ainda
+    setFormData(data);
+    setCurrentStep("payment");
+  };
+
+  const handlePaymentMethodSelect = (method: PaymentMethod) => {
+    setPaymentMethod(method);
+  };
+
+  const handleCreditPayment = async () => {
+    if (!formData || !loteSelecionado || !paymentMethod) {
       toast({
-        title: "Erro ao realizar inscrição",
-        description: "Tente novamente mais tarde.",
+        title: "Erro ao processar pagamento",
+        description: "Selecione um método de pagamento primeiro.",
         variant: "destructive",
       });
-      console.error("Insert error:", error);
       return;
     }
 
-    setIsSubmitted(true);
+    try {
+      // Salva a inscrição no banco
+      const id = await salvarInscricao(formData, "credit");
+      setInscricaoId(id);
+
+      // Redireciona para o Stripe
+      goToPaymentLink();
+
+      // Vai para a tela de confirmação
+      setCurrentStep("confirmation");
+    } catch (error) {
+      console.error("Erro ao salvar inscrição:", error);
+      toast({
+        title: "Erro ao processar inscrição",
+        description: "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    }
   };
 
-  // if (isSubmitted) {
-  //   return (
-  //     <div className="flex-1 px-4 py-8 md:px-6">
-  //       <div className="mx-auto max-w-2xl space-y-8">
-  //         <div className="text-center">
-  //           <h1 className="font-display text-2xl font-bold text-[#393939] uppercase md:text-3xl">
-  //             Finalizar pagamento
-  //           </h1>
-  //           <p className="mt-2 text-muted-foreground">
-  //             OIKOS 2026 — confirme a sua inscrição de forma segura.
-  //           </p>
-  //         </div>
+  const handlePixPayment = async () => {
+    if (!formData || !loteSelecionado || !paymentMethod) {
+      toast({
+        title: "Erro ao processar pagamento",
+        description: "Selecione um método de pagamento primeiro.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  //         <div className="flex flex-col items-center gap-6 rounded-lg border bg-[#fffbef] p-8">
-  //           <div className="flex h-14 w-14 items-center justify-center rounded-full">
-  //             <CreditCard className="h-7 w-7 text-primary" style={{ color: 'hsl(195 100% 45%)' }} />
-  //           </div>
-  //           <p className="text-center text-muted-foreground">
-  //             Você será redirecionado para uma página segura para realizar o pagamento.
-  //           </p>
-  //           <Button
-  //             size="lg"
-  //             className="w-full max-w-xs hover:bg-[#faf7ef]/90 text-foreground text-white"
-  //             style={{ backgroundColor: 'hsl(195 100% 45%)' }}
-  //             onClick={goToPaymentLink}
-  //           >
-  //             Ir para pagamento
-  //           </Button>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-  if (isSubmitted) {
+    if (!comprovanteFile) {
+      toast({
+        title: "Comprovante necessário",
+        description: "Selecione o comprovante de pagamento PIX.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      // Salva a inscrição no banco
+      const id = await salvarInscricao(formData, "pix");
+      setInscricaoId(id);
+
+      // Faz upload do comprovante
+      await uploadComprovante(comprovanteFile, id);
+
+      // Vai para a tela de confirmação
+      setCurrentStep("confirmation");
+    } catch (error) {
+      console.error("Erro ao processar pagamento PIX:", error);
+      toast({
+        title: "Erro ao processar pagamento",
+        description: "Tente novamente ou entre em contato conosco.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleCopyPixKey = () => {
+    navigator.clipboard.writeText(PIX_DATA.key);
+    toast({
+      title: "Chave copiada!",
+      description: "A chave PIX foi copiada para a área de transferência.",
+    });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de arquivo
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Formato inválido",
+        description: "Por favor, selecione uma imagem (PNG, JPG, etc).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar tamanho (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Arquivo muito grande",
+        description: "O comprovante deve ter no máximo 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setComprovanteFile(file);
+
+    // Criar preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setComprovantePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearComprovante = () => {
+    setComprovanteFile(null);
+    setComprovantePreview(null);
+  };
+
+  const handleBackToForm = () => {
+    setCurrentStep("form");
+    setPaymentMethod(null);
+    setComprovanteFile(null);
+    setComprovantePreview(null);
+  };
+
+  // Tela de confirmação genérica
+  if (currentStep === "confirmation") {
+    // Textos dinâmicos baseados no método de pagamento
+    const confirmationMessages = {
+      title:
+        paymentMethod === "pix"
+          ? "Comprovante enviado!"
+          : "Redirecionamento realizado!",
+      mainMessage:
+        paymentMethod === "pix"
+          ? "Seu comprovante foi enviado com sucesso para nossa equipe."
+          : "Você foi redirecionado para o ambiente seguro de pagamento.",
+      instruction:
+        paymentMethod === "pix"
+          ? "Em até 5 minutos sua inscrição será confirmada. Fique atento ao seu e-mail!"
+          : "Após a confirmação do pagamento, sua inscrição será automaticamente confirmada.",
+    };
+
+    return (
+      <div className="flex-1 px-4 py-8 md:px-6 min-h-[60vh] flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="mx-auto max-w-md w-full"
+        >
+          <div className="bg-[#fffbef] rounded-2xl border shadow-lg p-8 md:p-10 text-center space-y-6">
+            {/* Ícone de check verde */}
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+              className="flex justify-center"
+            >
+              <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+                <CheckCircle className="w-12 h-12 text-green-600" />
+              </div>
+            </motion.div>
+
+            {/* Título */}
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="font-display text-2xl md:text-3xl font-bold text-[#393939]"
+            >
+              {confirmationMessages.title}
+            </motion.h2>
+
+            {/* Mensagem principal */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="space-y-6"
+            >
+              <p className="text-muted-foreground">
+                {confirmationMessages.mainMessage}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {confirmationMessages.instruction}
+              </p>
+            </motion.div>
+
+            {/* Aviso de segurança */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7 }}
+              className="text-xs text-muted-foreground pt-2"
+            >
+              Esta é uma mensagem automática. O status do seu pagamento será
+              atualizado em breve.
+            </motion.p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Tela de escolha de pagamento
+  if (currentStep === "payment") {
     return (
       <div className="flex-1 px-4 py-8 md:px-6">
         <div className="mx-auto max-w-2xl space-y-8">
+          <Button
+            variant="ghost"
+            className="mb-4 -ml-2 text-[#393939] hover:text-[hsl(195,100%,45%)]"
+            onClick={handleBackToForm}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar ao formulário
+          </Button>
+
           <div className="text-center">
             <h1 className="font-display text-2xl font-bold text-[#393939] uppercase md:text-3xl">
               Finalizar pagamento
@@ -191,7 +442,7 @@ const OikosFormSection = () => {
             <motion.div
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => setPaymentMethod("credit")}
+              onClick={() => handlePaymentMethodSelect("credit")}
               className={`
                 cursor-pointer rounded-lg border-2 p-6 transition-all
                 ${
@@ -220,7 +471,7 @@ const OikosFormSection = () => {
                         : "#393939",
                   }}
                 >
-                  Cartão
+                  Cartão de Crédito
                 </span>
               </div>
             </motion.div>
@@ -229,7 +480,7 @@ const OikosFormSection = () => {
             <motion.div
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => setPaymentMethod("pix")}
+              onClick={() => handlePaymentMethodSelect("pix")}
               className={`
                 cursor-pointer rounded-lg border-2 p-6 transition-all
                 ${
@@ -276,13 +527,14 @@ const OikosFormSection = () => {
               </div>
               <p className="text-center text-muted-foreground">
                 Você será redirecionado para uma página segura para realizar o
-                pagamento com cartão.
+                pagamento com cartão de crédito.
               </p>
               <Button
                 size="lg"
                 className="w-full max-w-xs hover:bg-[#faf7ef]/90 text-white"
                 style={{ backgroundColor: "hsl(195 100% 45%)" }}
-                onClick={goToPaymentLink}
+                onClick={handleCreditPayment}
+                disabled={!paymentMethod}
               >
                 Ir para pagamento
               </Button>
@@ -303,9 +555,13 @@ const OikosFormSection = () => {
                 />
               </div>
 
-              {/* Espaço para QR Code */}
-              <div className="w-full max-w-[250px] aspect-square bg-white rounded-lg border-2 shadow-md flex items-center justify-center">
-                <img src={qrCodePix} className="w-full h-full" />
+              {/* QR Code PIX */}
+              <div className="w-full max-w-[300px] aspect-square bg-white flex items-center justify-center">
+                <img
+                  src={qrCodePix}
+                  className="w-full h-full"
+                  alt="QR Code PIX"
+                />
               </div>
 
               {/* Chave PIX */}
@@ -315,21 +571,13 @@ const OikosFormSection = () => {
                 </p>
                 <div className="flex gap-2">
                   <div className="flex-1 bg-white rounded-md border px-3 py-2 text-md text-black font-bold text-center">
-                    177.169.606-01
+                    {PIX_DATA.key}
                   </div>
                   <Button
                     variant="outline"
                     size="icon"
                     className="shrink-0"
-                    style={{ color: "hsl(195 100% 45%)" }}
-                    onClick={() => {
-                      navigator.clipboard.writeText("177.169.606-01");
-                      toast({
-                        title: "Chave copiada!",
-                        description:
-                          "A chave PIX foi copiada para a área de transferência.",
-                      });
-                    }}
+                    onClick={handleCopyPixKey}
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
@@ -339,16 +587,83 @@ const OikosFormSection = () => {
               {/* Nome do recebedor */}
               <div className="w-full max-w-sm flex flex-col items-center gap-1">
                 <p className="text-sm font-medium text-[#393939] text-center">
-                  Nome do recebedor(a):
+                  Nome do recebedor:
                 </p>
                 <div className="bg-white rounded-md border px-3 py-2 text-md font-bold text-black text-center">
-                  Ana Clara Gonçalves dos Santos
+                  {PIX_DATA.receiverName}
                 </div>
               </div>
 
+              {/* Upload do comprovante */}
+              <div className="w-full max-w-sm space-y-4">
+                <p className="text-sm font-medium text-[#393939] text-center">
+                  Após realizar o pagamento, envie o comprovante:
+                </p>
+
+                {!comprovantePreview ? (
+                  <div className="flex flex-col items-center gap-4">
+                    <label
+                      htmlFor="comprovante"
+                      className="w-full cursor-pointer"
+                    >
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[hsl(195,100%,45%)] transition-colors">
+                        <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-500">
+                          Clique para selecionar o comprovante
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          PNG, JPG ou JPEG (máx. 5MB)
+                        </p>
+                      </div>
+                      <input
+                        id="comprovante"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileChange}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <img
+                        src={comprovantePreview}
+                        alt="Preview do comprovante"
+                        className="w-full rounded-lg border max-h-48 object-cover"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 bg-white/80 hover:bg-white hover:text-[#00ace6]"
+                        onClick={clearComprovante}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    <Button
+                      className="w-full"
+                      style={{ backgroundColor: "hsl(195 100% 45%)" }}
+                      onClick={handlePixPayment}
+                      disabled={uploading || !comprovanteFile}
+                    >
+                      {uploading ? (
+                        <>Enviando...</>
+                      ) : (
+                        <>
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Finalizar pagamento
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
               <p className="text-center text-sm text-muted-foreground mt-2">
-                Fique tranquilo! Após realizar o pagamento, sua inscrição será
-                confirmada pela nossa equipe em nosso sistema em até 5 minutos.
+                Fique tranquilo! Após o envio do comprovante, sua inscrição será
+                confirmada pela nossa equipe em até 5 minutos.
               </p>
             </motion.div>
           )}
@@ -356,6 +671,8 @@ const OikosFormSection = () => {
       </div>
     );
   }
+
+  // Formulário de inscrição
   return (
     <section
       id="inscricao"
@@ -413,7 +730,7 @@ const OikosFormSection = () => {
             <Form {...form}>
               <form
                 className="space-y-6"
-                onSubmit={form.handleSubmit(handleSubmit)}
+                onSubmit={form.handleSubmit(handleFormSubmit)}
               >
                 <DadosPessoaisSection form={form} />
                 <PaisResponsaveisSection form={form} />
@@ -427,7 +744,7 @@ const OikosFormSection = () => {
                   className="w-full font-semibold text-white"
                   style={{ backgroundColor: "hsl(195 100% 45%)" }}
                 >
-                  Confirmar Inscrição
+                  Ir para pagamento
                 </Button>
               </form>
             </Form>
