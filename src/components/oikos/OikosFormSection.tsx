@@ -118,7 +118,7 @@ const OikosFormSection = () => {
   };
 
   // Função para salvar a inscrição no banco
-  const salvarInscricao = async (data: FormData, method: PaymentMethod) => {
+  const salvarInscricao = async (data: FormData, method: PaymentMethod, statusDinamyc: string = "processando") => {
     const { data: insertedData, error } = await supabase
       .from("inscricoes")
       .insert({
@@ -149,7 +149,7 @@ const OikosFormSection = () => {
         tamanho_camisa: data.tamanhoCamisa,
         expectativa_oikos: data.expectativaOikos || null,
         idade: calculateAge(data.dataNascimento),
-        status: "processando",
+        status: statusDinamyc,
         metodo_pagamento: method,
       })
       .select()
@@ -278,7 +278,7 @@ const uploadComprovante = async (file: File, id: number) => {
       setUploading(true);
 
       // Salva a inscrição no banco
-      const id = await salvarInscricao(formData, "pix");
+      const id = await salvarInscricao(formData, "pix", "confirmado");
       setInscricaoId(id);
 
       // Faz upload do comprovante
