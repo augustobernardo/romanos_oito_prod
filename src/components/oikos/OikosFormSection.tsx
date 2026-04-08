@@ -368,7 +368,7 @@ const OikosFormSection = () => {
           : "Você foi redirecionado para o ambiente seguro de pagamento.",
       instruction:
         paymentMethod === "pix"
-          ? "Em até 5 minutos sua inscrição será confirmada. Fique atento ao seu e-mail!"
+          ? "Em até 5 minutos sua inscrição será confirmada."
           : "Após a confirmação do pagamento, sua inscrição será automaticamente confirmada.",
     };
 
