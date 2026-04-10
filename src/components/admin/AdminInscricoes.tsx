@@ -22,6 +22,7 @@ import {
   CreditCard,
   QrCode,
   Eye,
+  Tag,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import type { Tables } from "@/integrations/supabase/types";
@@ -86,6 +87,15 @@ const formatPaymentMethod = (method: string | null) => {
       label: "PIX",
       icon: (
         <QrCode
+          className="h-3.5 w-3.5 mr-1"
+          style={{ color: "hsl(195,100%,45%)" }}
+        />
+      ),
+    },
+    cupom: {
+      label: "Especial",
+      icon: (
+        <Tag
           className="h-3.5 w-3.5 mr-1"
           style={{ color: "hsl(195,100%,45%)" }}
         />
@@ -260,48 +270,6 @@ const AdminInscricoes = () => {
     setOpen(false);
     fetchInscricoes();
   };
-
-  // const handleDelete = async (id: string) => {
-  //   if (!confirm("Tem certeza que deseja excluir esta inscrição?")) return;
-
-  //   // Antes de excluir, verifica se existem registros duplicados
-  //   const inscricaoToDelete = allInscricoes.find((i) => i.id === id);
-
-  //   if (inscricaoToDelete) {
-  //     const key = createUniqueKey(inscricaoToDelete);
-  //     const duplicates = allInscricoes.filter(
-  //       (i) => createUniqueKey(i) === key,
-  //     );
-
-  //     if (duplicates.length > 1) {
-  //       // Se houver duplicatas, pergunta se quer excluir todas ou apenas esta
-  //       const action = confirm(
-  //         `Foram encontradas ${duplicates.length} inscrições para esta pessoa. ` +
-  //           `Deseja excluir TODAS as inscrições duplicadas? ` +
-  //           `(Clique OK para excluir todas, ou Cancelar para excluir apenas esta)`,
-  //       );
-
-  //       if (action) {
-  //         // Exclui todas as duplicatas
-  //         const idsToDelete = duplicates.map((d) => d.id);
-  //         const { error } = await supabase
-  //           .from("inscricoes")
-  //           .delete()
-  //           .in("id", idsToDelete);
-
-  //         if (error) {
-  //           toast.error("Erro ao excluir registros duplicados");
-  //         } else {
-  //           toast.success(
-  //             `${duplicates.length} inscrições excluídas com sucesso`,
-  //           );
-  //           fetchInscricoes();
-  //         }
-  //         return;
-  //       }
-  //     }
-  //   }
-  // };
 
   const handleDeleteClick = (id: string) => {
     setSelectedId(id);

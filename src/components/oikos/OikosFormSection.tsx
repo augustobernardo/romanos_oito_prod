@@ -11,6 +11,7 @@ import {
   Upload,
   X,
   ArrowLeft,
+  Tag,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -47,7 +48,7 @@ const calculateAge = (birthday: string) => {
   return age;
 };
 
-type PaymentMethod = "credit" | "pix" | null;
+type PaymentMethod = "credit" | "pix" | "cupom" | null;
 type PaymentStep = "form" | "payment" | "confirmation";
 
 const PIX_DATA = {
@@ -66,6 +67,8 @@ const OikosFormSection = () => {
   );
   const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState<FormData | null>(null);
+  const [cupomCode, setCupomCode] = useState("");
+  const [cupomValidating, setCupomValidating] = useState(false);
   const { toast } = useToast();
 
   const { lotes, loading: lotesLoading } = useLotes();
@@ -121,6 +124,7 @@ const OikosFormSection = () => {
     data: FormData,
     method: PaymentMethod,
     statusDinamyc: string = "processando",
+    cupomInfo?: { nomeTitular: string | null; comprovanteUrl: string | null },
   ) => {
     const { data: insertedData, error } = await supabase
       .from("inscricoes")
@@ -154,6 +158,9 @@ const OikosFormSection = () => {
         idade: calculateAge(data.dataNascimento),
         status: statusDinamyc,
         metodo_pagamento: method,
+        lote_especial: method === "cupom",
+        titular_especial: cupomInfo?.nomeTitular || null,
+        comprovante_url: cupomInfo?.comprovanteUrl || null,
       })
       .select()
       .single();
@@ -187,7 +194,7 @@ const OikosFormSection = () => {
         console.error("Erro no upload:", uploadError);
         throw uploadError;
       }
-      
+
       // IMPORTANTE: Salvar apenas o nome do arquivo, não a URL completa
       // Atualizar a inscrição com o nome do arquivo
       const { error: updateError } = await supabase
@@ -254,6 +261,58 @@ const OikosFormSection = () => {
         description: "Tente novamente mais tarde.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleCupomPayment = async () => {
+    if (!formData || !loteSelecionado) return;
+    if (!cupomCode.trim()) {
+      toast({ title: "Insira o código do cupom", variant: "destructive" });
+      return;
+    }
+
+    setCupomValidating(true);
+    try {
+      const { data: result, error } = await supabase.rpc("validar_cupom", {
+        _codigo: cupomCode.trim(),
+      });
+
+      if (error) throw error;
+
+      const parsed = result as {
+        valid: boolean;
+        error?: string;
+        cupom_id?: string;
+        nome_titular?: string;
+        comprovante_url?: string;
+      };
+
+      if (!parsed.valid) {
+        toast({
+          title: "Cupom inválido",
+          description: parsed.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const cupomInfo = {
+        nomeTitular: parsed.nome_titular || null,
+        comprovanteUrl: parsed.comprovante_url || null,
+      };
+
+      // Salva inscrição como confirmada
+      await salvarInscricao(formData, "cupom", "confirmado", cupomInfo);
+      setCurrentStep("confirmation");
+    } catch (error) {
+      console.error("Erro ao validar cupom:", error);
+      toast({
+        title: "Erro ao validar cupom",
+        description: "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setCupomValidating(false);
     }
   };
 
@@ -352,6 +411,7 @@ const OikosFormSection = () => {
     setPaymentMethod(null);
     setComprovanteFile(null);
     setComprovantePreview(null);
+    setCupomCode("");
   };
 
   // Tela de confirmação genérica
@@ -361,15 +421,21 @@ const OikosFormSection = () => {
       title:
         paymentMethod === "pix"
           ? "Comprovante enviado!"
-          : "Redirecionamento realizado!",
+          : paymentMethod === "cupom"
+            ? "Inscrição confirmada!"
+            : "Redirecionamento realizado!",
       mainMessage:
         paymentMethod === "pix"
           ? "Seu comprovante foi enviado com sucesso para nossa equipe."
-          : "Você foi redirecionado para o ambiente seguro de pagamento.",
+          : paymentMethod === "cupom"
+            ? "Seu cupom foi validado e sua inscrição foi confirmada com sucesso!"
+            : "Você foi redirecionado para o ambiente seguro de pagamento.",
       instruction:
         paymentMethod === "pix"
           ? "Em até 5 minutos sua inscrição será confirmada."
-          : "Após a confirmação do pagamento, sua inscrição será automaticamente confirmada.",
+          : paymentMethod === "cupom"
+            ? "Não é necessário nenhum pagamento adicional. Nos vemos no OIKOS!"
+            : "Após a confirmação do pagamento, sua inscrição será automaticamente confirmada.",
     };
 
     return (
@@ -530,6 +596,44 @@ const OikosFormSection = () => {
                 </span>
               </div>
             </motion.div>
+
+            {/* Card de Cupom Especial */}
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => handlePaymentMethodSelect("cupom")}
+              className={`
+              cursor-pointer rounded-lg border-2 p-6 transition-all
+              ${
+                paymentMethod === "cupom"
+                  ? "border-[hsl(195,100%,45%)] bg-[#fffbef]"
+                  : "border-gray-200 bg-white hover:border-gray-300"
+              }
+            `}
+            >
+              <div className="flex flex-col items-center gap-3">
+                <Tag
+                  className="h-8 w-8"
+                  style={{
+                    color:
+                      paymentMethod === "cupom"
+                        ? "hsl(195,100%,45%)"
+                        : "#9ca3af",
+                  }}
+                />
+                <span
+                  className="font-medium text-center"
+                  style={{
+                    color:
+                      paymentMethod === "cupom"
+                        ? "hsl(195,100%,45%)"
+                        : "#393939",
+                  }}
+                >
+                  Cupom Especial
+                </span>
+              </div>
+            </motion.div>
           </div>
 
           {/* Conteúdo condicional baseado no método selecionado */}
@@ -685,6 +789,53 @@ const OikosFormSection = () => {
               <p className="text-center text-sm text-muted-foreground mt-2">
                 Fique tranquilo! Após o envio do comprovante, sua inscrição será
                 confirmada pela nossa equipe em até 5 minutos.
+              </p>
+            </motion.div>
+          )}
+
+          {paymentMethod === "cupom" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col items-center gap-6 rounded-lg border bg-[#fffbef] p-8"
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-full">
+                <Tag
+                  className="h-7 w-7"
+                  style={{ color: "hsl(195 100% 45%)" }}
+                />
+              </div>
+              <p className="text-center text-muted-foreground">
+                Insira o código do cupom especial que você recebeu.
+              </p>
+              <div className="w-full max-w-xs space-y-4">
+                <input
+                  type="text"
+                  placeholder="Cole o código do cupom aqui"
+                  value={cupomCode}
+                  onChange={(e) => setCupomCode(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-center font-mono tracking-wider"
+                />
+                <Button
+                  size="lg"
+                  className="w-full text-white"
+                  style={{ backgroundColor: "hsl(195 100% 45%)" }}
+                  onClick={handleCupomPayment}
+                  disabled={cupomValidating || !cupomCode.trim()}
+                >
+                  {cupomValidating ? (
+                    "Validando..."
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Validar e finalizar inscrição
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-center text-xs text-muted-foreground">
+                O cupom especial é válido para até 3 inscrições do mesmo grupo.
               </p>
             </motion.div>
           )}

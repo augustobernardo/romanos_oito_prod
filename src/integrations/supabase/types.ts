@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      cupons: {
+        Row: {
+          codigo: string
+          comprovante_url: string | null
+          created_at: string
+          id: string
+          max_usos: number
+          nome_titular: string | null
+          status: string
+          usos_atuais: number
+        }
+        Insert: {
+          codigo: string
+          comprovante_url?: string | null
+          created_at?: string
+          id?: string
+          max_usos?: number
+          nome_titular?: string | null
+          status?: string
+          usos_atuais?: number
+        }
+        Update: {
+          codigo?: string
+          comprovante_url?: string | null
+          created_at?: string
+          id?: string
+          max_usos?: number
+          nome_titular?: string | null
+          status?: string
+          usos_atuais?: number
+        }
+        Relationships: []
+      }
       eventos: {
         Row: {
           created_at: string
@@ -55,6 +88,7 @@ export type Database = {
           cidade_estado: string
           como_conheceu: string
           como_conheceu_outro: string | null
+          comprovante_url: string | null
           comunidade: string
           created_at: string
           data_nascimento: string
@@ -68,6 +102,7 @@ export type Database = {
           instagram: string
           is_catolico: string
           is_catolico_outro: string | null
+          lote_especial: boolean
           lote_id: number
           nome: string
           nome_mae: string
@@ -81,11 +116,13 @@ export type Database = {
           status: string
           tamanho_camisa: string
           telefone: string
+          titular_especial: string | null
         }
         Insert: {
           cidade_estado: string
           como_conheceu: string
           como_conheceu_outro?: string | null
+          comprovante_url?: string | null
           comunidade: string
           created_at?: string
           data_nascimento: string
@@ -99,6 +136,7 @@ export type Database = {
           instagram: string
           is_catolico: string
           is_catolico_outro?: string | null
+          lote_especial?: boolean
           lote_id: number
           nome: string
           nome_mae: string
@@ -112,11 +150,13 @@ export type Database = {
           status?: string
           tamanho_camisa: string
           telefone: string
+          titular_especial?: string | null
         }
         Update: {
           cidade_estado?: string
           como_conheceu?: string
           como_conheceu_outro?: string | null
+          comprovante_url?: string | null
           comunidade?: string
           created_at?: string
           data_nascimento?: string
@@ -130,6 +170,7 @@ export type Database = {
           instagram?: string
           is_catolico?: string
           is_catolico_outro?: string | null
+          lote_especial?: boolean
           lote_id?: number
           nome?: string
           nome_mae?: string
@@ -143,6 +184,7 @@ export type Database = {
           status?: string
           tamanho_camisa?: string
           telefone?: string
+          titular_especial?: string | null
         }
         Relationships: [
           {
@@ -229,6 +271,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      validar_cupom: { Args: { _codigo: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "user"
