@@ -11,7 +11,7 @@ import Footer from "@/components/home/Footer";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import supabase from "@/utils/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 import { useLotes, getLoteDisponivel } from "@/components/form/useLotes";
 import LoteCard from "@/components/form/LoteCard";
@@ -34,28 +34,45 @@ const calculateAge = (birthday: string) => {
   return age;
 };
 
-const phoneField = z.string().refine(isValidPhone, { message: "Contato inválido" });
+const phoneField = z
+  .string()
+  .refine(isValidPhone, { message: "Contato inválido" });
 
-// Schema 
+// Schema
 const formSchema = z.object({
   // Dados Pessoais
   nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres").max(100),
   dataNascimento: z.string().min(1, "Data de nascimento é obrigatória"),
   telefone: z.string().refine(
-    (val) => { const d = val.replace(/\D/g, ""); return d.length >= 10 && d.length <= 11; },
-    { message: "Telefone inválido" }
+    (val) => {
+      const d = val.replace(/\D/g, "");
+      return d.length >= 10 && d.length <= 11;
+    },
+    { message: "Telefone inválido" },
   ),
-  instagram: z.string().min(3, "Instagram deve ter pelo menos 3 caracteres").max(100),
+  instagram: z
+    .string()
+    .min(3, "Instagram deve ter pelo menos 3 caracteres")
+    .max(100),
   comunidade: z.string().min(2, "Comunidade/Paróquia é obrigatória").max(100),
   cidadeEstado: z.string().min(8, "Estado e Cidade são obrigatórios").max(100),
-  enderecoCompleto: z.string().min(5, "Endereço completo é obrigatório").max(255),
+  enderecoCompleto: z
+    .string()
+    .min(5, "Endereço completo é obrigatório")
+    .max(255),
   comoConheceu: z.string().min(1, "Selecione uma opção"),
   comoConheceuOutro: z.string().optional(),
 
   // Pais / Responsáveis
-  nomeMae: z.string().min(3, "Nome da mãe deve ter pelo menos 3 caracteres").max(100),
+  nomeMae: z
+    .string()
+    .min(3, "Nome da mãe deve ter pelo menos 3 caracteres")
+    .max(100),
   numeroMae: phoneField,
-  nomePai: z.string().min(3, "Nome do pai deve ter pelo menos 3 caracteres").max(100),
+  nomePai: z
+    .string()
+    .min(3, "Nome do pai deve ter pelo menos 3 caracteres")
+    .max(100),
   numeroPai: phoneField,
   numeroResponsavelProximo: phoneField.optional(),
 
@@ -67,9 +84,17 @@ const formSchema = z.object({
   fezRetiroOutro: z.string().optional(),
 
   // Emergência
-  nomePessoaEmergencia: z.string().min(3, "Nome deve ter pelo menos 3 caracteres").max(100),
-  grauParentescoEmergencia: z.string().min(2, "Grau de parentesco é obrigatório").max(50),
-  numeroEmergencia: z.string().refine(isValidPhone, { message: "Número de emergência inválido" }),
+  nomePessoaEmergencia: z
+    .string()
+    .min(3, "Nome deve ter pelo menos 3 caracteres")
+    .max(100),
+  grauParentescoEmergencia: z
+    .string()
+    .min(2, "Grau de parentesco é obrigatório")
+    .max(50),
+  numeroEmergencia: z
+    .string()
+    .refine(isValidPhone, { message: "Número de emergência inválido" }),
 
   // Camisa
   tamanhoCamisa: z.string().min(1, "Selecione o tamanho da camisa"),
@@ -183,7 +208,10 @@ const EventoOikos2026 = () => {
           <p className="text-center text-muted-foreground">
             Checkout não configurado.
           </p>
-          <Button variant="outline" onClick={() => navigate("/eventos/oikos-2026")}>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/eventos/oikos-2026")}
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>

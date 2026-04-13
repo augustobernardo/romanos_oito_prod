@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import supabase from "@/utils/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 import { formSchema, type FormData } from "@/components/form/types";
 import {

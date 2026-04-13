@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import supabase from "@/utils/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 
 const fetchEventos = async () => {
@@ -22,15 +22,14 @@ const fetchEventos = async () => {
   return data || [];
 };
 
-
 const getFormatDate = (date: Date) => {
   const day = date.getUTCDate();
   const month = date.toLocaleString("pt-BR", { month: "long" });
   const dayFormatted = day < 10 ? `0${day}` : day;
-  return  {
+  return {
     day: dayFormatted as string,
     month: month as string,
-  }
+  };
 };
 
 const formatDateEvent = (evento: any) => {
@@ -42,9 +41,9 @@ const formatDateEvent = (evento: any) => {
 
   const dayBetween = new Date(startDate.getTime() + 86400000); // +1 dia (24h em ms)
   const dayBetweenFormatted = getFormatDate(dayBetween);
-  
+
   return `${startDateFormatted.day}, ${dayBetweenFormatted.day} e ${endDateFormatted.day} de ${startDateFormatted.month}`;
-}
+};
 
 // ===============================================================================
 // REMOVE SOON

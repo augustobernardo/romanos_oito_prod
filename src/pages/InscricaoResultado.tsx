@@ -6,12 +6,14 @@ import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import Header from "@/components/home/Header";
 import Footer from "@/components/home/Footer";
 import { Button } from "@/components/ui/button";
-import supabase from "@/utils/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 const InscricaoResultado = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "success" | "error">(
+    "loading",
+  );
 
   const resultado = searchParams.get("resultado"); // "sucesso" ou "cancelado"
   const inscricaoId = searchParams.get("inscricao_id");
@@ -23,7 +25,8 @@ const InscricaoResultado = () => {
         return;
       }
 
-      const novoStatus = resultado === "sucesso" ? "Confirmado" : "Não efetuado";
+      const novoStatus =
+        resultado === "sucesso" ? "Confirmado" : "Não efetuado";
 
       const { error } = await supabase
         .from("inscricoes")

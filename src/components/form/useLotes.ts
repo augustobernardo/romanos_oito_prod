@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import supabase from "@/utils/supabase";
+import { supabase}  from "@/integrations/supabase/client";
 import type { LoteInfo } from "./LoteCard";
 
 export const useLotes = (): { lotes: LoteInfo[]; loading: boolean } => {
