@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase}  from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import type { LoteInfo } from "./LoteCard";
 
 export const useLotes = (): { lotes: LoteInfo[]; loading: boolean } => {
@@ -21,7 +21,8 @@ export const useLotes = (): { lotes: LoteInfo[]; loading: boolean } => {
             nome: l.nome,
             preco: l.preco,
             status: l.status as "disponivel" | "esgotado",
-          }))
+            is_especial: l.is_especial ?? false,
+          })),
         );
       }
       setLoading(false);
@@ -34,12 +35,15 @@ export const useLotes = (): { lotes: LoteInfo[]; loading: boolean } => {
 
 export const getLoteDisponivel = (lotes: LoteInfo[]): number | null => {
   for (const lote of lotes) {
-    if (lote.status === "disponivel") return lote.id;
+    if (lote.status === "disponivel" && !lote.is_especial) return lote.id;
   }
   return null;
 };
 
-export const getLoteDisponivelPaymentLink = (lotes: LoteInfo[], loteId: number): string | null => {
+export const getLoteDisponivelPaymentLink = (
+  lotes: LoteInfo[],
+  loteId: number,
+): string | null => {
   const lote = lotes.find((l) => l.id === loteId);
   if (lote && lote.status === "disponivel") {
     return lote.id_payment_link;

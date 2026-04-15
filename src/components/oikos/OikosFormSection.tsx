@@ -49,7 +49,7 @@ const calculateAge = (birthday: string) => {
 };
 
 type PaymentMethod = "credit" | "pix" | "cupom" | null;
-type PaymentStep = "form" | "payment" | "confirmation";
+type PaymentStep = "form" | "cupom_validation" | "payment" | "confirmation";
 
 const PIX_DATA = {
   key: "177.169.606-01",
@@ -69,6 +69,10 @@ const OikosFormSection = () => {
   const [formData, setFormData] = useState<FormData | null>(null);
   const [cupomCode, setCupomCode] = useState("");
   const [cupomValidating, setCupomValidating] = useState(false);
+  const [cupomInfo, setCupomInfo] = useState<{
+    nomeTitular: string | null;
+    comprovanteUrl: string | null;
+  } | null>(null);
   const { toast } = useToast();
 
   const { lotes, loading: lotesLoading } = useLotes();
@@ -224,10 +228,20 @@ const OikosFormSection = () => {
     }
   };
 
+  const isLoteEspecialSelected = () => {
+    if (!loteSelecionado) return false;
+    const lote = lotes.find((l) => l.id === loteSelecionado);
+    return lote?.is_especial ?? false;
+  };
+
   const handleFormSubmit = async (data: FormData) => {
-    // Apenas avança para a tela de pagamento, sem salvar no banco ainda
     setFormData(data);
-    setCurrentStep("payment");
+    // If special lote, go to coupon validation first
+    if (isLoteEspecialSelected()) {
+      setCurrentStep("cupom_validation");
+    } else {
+      setCurrentStep("payment");
+    }
   };
 
   const handlePaymentMethodSelect = (method: PaymentMethod) => {
@@ -264,8 +278,7 @@ const OikosFormSection = () => {
     }
   };
 
-  const handleCupomPayment = async () => {
-    if (!formData || !loteSelecionado) return;
+  const handleCupomValidation = async () => {
     if (!cupomCode.trim()) {
       toast({ title: "Insira o código do cupom", variant: "destructive" });
       return;
@@ -296,14 +309,18 @@ const OikosFormSection = () => {
         return;
       }
 
-      const cupomInfo = {
+      setCupomInfo({
         nomeTitular: parsed.nome_titular || null,
         comprovanteUrl: parsed.comprovante_url || null,
-      };
+      });
 
-      // Salva inscrição como confirmada
-      await salvarInscricao(formData, "cupom", "confirmado", cupomInfo);
-      setCurrentStep("confirmation");
+      toast({
+        title: "Cupom validado!",
+        description: "Prossiga para o pagamento.",
+      });
+
+      // Go to payment step
+      setCurrentStep("payment");
     } catch (error) {
       console.error("Erro ao validar cupom:", error);
       toast({
@@ -313,6 +330,28 @@ const OikosFormSection = () => {
       });
     } finally {
       setCupomValidating(false);
+    }
+  };
+
+  const handleCupomPayment = async () => {
+    if (!formData || !loteSelecionado) return;
+
+    try {
+      // Save inscription as confirmed with coupon info
+      await salvarInscricao(
+        formData,
+        "cupom",
+        "confirmado",
+        cupomInfo || undefined,
+      );
+      setCurrentStep("confirmation");
+    } catch (error) {
+      console.error("Erro ao salvar inscrição:", error);
+      toast({
+        title: "Erro ao processar inscrição",
+        description: "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -412,6 +451,15 @@ const OikosFormSection = () => {
     setComprovanteFile(null);
     setComprovantePreview(null);
     setCupomCode("");
+    setCupomInfo(null);
+  };
+
+  const handleBackFromPaymentToForm = () => {
+    if (isLoteEspecialSelected()) {
+      setCurrentStep("cupom_validation");
+    } else {
+      handleBackToForm();
+    }
   };
 
   // Tela de confirmação genérica
@@ -500,8 +548,8 @@ const OikosFormSection = () => {
     );
   }
 
-  // Tela de escolha de pagamento
-  if (currentStep === "payment") {
+  // Tela de validação de cupom (multi-step: step 1 para lote especial)
+  if (currentStep === "cupom_validation") {
     return (
       <div className="flex-1 px-4 py-8 md:px-6">
         <div className="mx-auto max-w-2xl space-y-8">
@@ -514,6 +562,127 @@ const OikosFormSection = () => {
             Voltar ao formulário
           </Button>
 
+          {/* Step indicator */}
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                style={{ backgroundColor: "hsl(195 100% 45%)" }}
+              >
+                1
+              </div>
+              <span className="text-sm font-medium text-[#393939]">
+                Validar Cupom
+              </span>
+            </div>
+            <div className="w-8 h-px bg-gray-300 mx-2" />
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-gray-200 text-gray-500">
+                2
+              </div>
+              <span className="text-sm text-gray-400">Pagamento</span>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <h1 className="font-display text-2xl font-bold text-[#393939] uppercase md:text-3xl">
+              Validar Cupom Especial
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              Insira o código do cupom VC+2 que você recebeu
+            </p>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col items-center gap-6 rounded-lg border bg-[#fffbef] p-8"
+          >
+            <div className="flex h-14 w-14 items-center justify-center rounded-full">
+              <Tag className="h-7 w-7" style={{ color: "hsl(195 100% 45%)" }} />
+            </div>
+            <p className="text-center text-muted-foreground">
+              Insira o código do cupom especial que você recebeu.
+            </p>
+            <div className="w-full max-w-xs space-y-4">
+              <input
+                type="text"
+                placeholder="Cole o código do cupom aqui"
+                value={cupomCode}
+                onChange={(e) => setCupomCode(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-center font-mono tracking-wider"
+              />
+              <Button
+                size="lg"
+                className="w-full text-white"
+                style={{ backgroundColor: "hsl(195 100% 45%)" }}
+                onClick={handleCupomValidation}
+                disabled={cupomValidating || !cupomCode.trim()}
+              >
+                {cupomValidating ? (
+                  "Validando..."
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Validar cupom
+                  </>
+                )}
+              </Button>
+            </div>
+            <p className="text-center text-xs text-muted-foreground">
+              O cupom especial é válido para até 3 inscrições do mesmo grupo.
+            </p>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  // Tela de escolha de pagamento
+  if (currentStep === "payment") {
+    const isEspecial = isLoteEspecialSelected();
+
+    return (
+      <div className="flex-1 px-4 py-8 md:px-6">
+        <div className="mx-auto max-w-2xl space-y-8">
+          <Button
+            variant="ghost"
+            className="mb-4 -ml-2 text-[#393939] hover:text-[hsl(195,100%,45%)]"
+            onClick={handleBackFromPaymentToForm}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            {isEspecial
+              ? "Voltar à validação do cupom"
+              : "Voltar ao formulário"}
+          </Button>
+
+          {/* Step indicator for special lote */}
+          {isEspecial && (
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-green-500 text-white">
+                  <CheckCircle className="h-4 w-4" />
+                </div>
+                <span className="text-sm text-green-600 font-medium">
+                  Cupom Validado
+                </span>
+              </div>
+              <div className="w-8 h-px bg-gray-300 mx-2" />
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                  style={{ backgroundColor: "hsl(195 100% 45%)" }}
+                >
+                  2
+                </div>
+                <span className="text-sm font-medium text-[#393939]">
+                  Pagamento
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="text-center">
             <h1 className="font-display text-2xl font-bold text-[#393939] uppercase md:text-3xl">
               Finalizar pagamento
@@ -523,8 +692,10 @@ const OikosFormSection = () => {
             </p>
           </div>
 
-          {/* Cards de seleção de pagamento */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 max-w-3xl mx-auto mb-12">
+          {/* Cards de seleção de pagamento - sem cupom (agora é lote separado) */}
+          <div
+            className={`grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 max-w-3xl mx-auto mb-12`}
+          >
             {/* Card de Crédito */}
             <motion.div
               whileHover={{ scale: 1.02 }}
@@ -596,44 +767,6 @@ const OikosFormSection = () => {
                 </span>
               </div>
             </motion.div>
-
-            {/* Card de Cupom Especial */}
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => handlePaymentMethodSelect("cupom")}
-              className={`
-              cursor-pointer rounded-lg border-2 p-6 transition-all
-              ${
-                paymentMethod === "cupom"
-                  ? "border-[hsl(195,100%,45%)] bg-[#fffbef]"
-                  : "border-gray-200 bg-white hover:border-gray-300"
-              }
-            `}
-            >
-              <div className="flex flex-col items-center gap-3">
-                <Tag
-                  className="h-8 w-8"
-                  style={{
-                    color:
-                      paymentMethod === "cupom"
-                        ? "hsl(195,100%,45%)"
-                        : "#9ca3af",
-                  }}
-                />
-                <span
-                  className="font-medium text-center"
-                  style={{
-                    color:
-                      paymentMethod === "cupom"
-                        ? "hsl(195,100%,45%)"
-                        : "#393939",
-                  }}
-                >
-                  Cupom Especial
-                </span>
-              </div>
-            </motion.div>
           </div>
 
           {/* Conteúdo condicional baseado no método selecionado */}
@@ -658,7 +791,14 @@ const OikosFormSection = () => {
                 size="lg"
                 className="w-full max-w-xs hover:bg-[#faf7ef]/90 text-white"
                 style={{ backgroundColor: "hsl(195 100% 45%)" }}
-                onClick={handleCreditPayment}
+                onClick={
+                  isEspecial
+                    ? async () => {
+                        await handleCupomPayment();
+                        goToPaymentLink();
+                      }
+                    : handleCreditPayment
+                }
                 disabled={!paymentMethod}
               >
                 Ir para pagamento
@@ -770,7 +910,34 @@ const OikosFormSection = () => {
                     <Button
                       className="w-full"
                       style={{ backgroundColor: "hsl(195 100% 45%)" }}
-                      onClick={handlePixPayment}
+                      onClick={
+                        isEspecial
+                          ? async () => {
+                              if (!comprovanteFile) return;
+                              try {
+                                setUploading(true);
+                                const id = await salvarInscricao(
+                                  formData!,
+                                  "pix",
+                                  "confirmado",
+                                  cupomInfo || undefined,
+                                );
+                                setInscricaoId(id);
+                                await uploadComprovante(comprovanteFile, id);
+                                setCurrentStep("confirmation");
+                              } catch (error) {
+                                console.error("Erro:", error);
+                                toast({
+                                  title: "Erro ao processar",
+                                  description: "Tente novamente.",
+                                  variant: "destructive",
+                                });
+                              } finally {
+                                setUploading(false);
+                              }
+                            }
+                          : handlePixPayment
+                      }
                       disabled={uploading || !comprovanteFile}
                     >
                       {uploading ? (
@@ -789,53 +956,6 @@ const OikosFormSection = () => {
               <p className="text-center text-sm text-muted-foreground mt-2">
                 Fique tranquilo! Após o envio do comprovante, sua inscrição será
                 confirmada pela nossa equipe em até 5 minutos.
-              </p>
-            </motion.div>
-          )}
-
-          {paymentMethod === "cupom" && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="flex flex-col items-center gap-6 rounded-lg border bg-[#fffbef] p-8"
-            >
-              <div className="flex h-14 w-14 items-center justify-center rounded-full">
-                <Tag
-                  className="h-7 w-7"
-                  style={{ color: "hsl(195 100% 45%)" }}
-                />
-              </div>
-              <p className="text-center text-muted-foreground">
-                Insira o código do cupom especial que você recebeu.
-              </p>
-              <div className="w-full max-w-xs space-y-4">
-                <input
-                  type="text"
-                  placeholder="Cole o código do cupom aqui"
-                  value={cupomCode}
-                  onChange={(e) => setCupomCode(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-center font-mono tracking-wider"
-                />
-                <Button
-                  size="lg"
-                  className="w-full text-white"
-                  style={{ backgroundColor: "hsl(195 100% 45%)" }}
-                  onClick={handleCupomPayment}
-                  disabled={cupomValidating || !cupomCode.trim()}
-                >
-                  {cupomValidating ? (
-                    "Validando..."
-                  ) : (
-                    <>
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Validar e finalizar inscrição
-                    </>
-                  )}
-                </Button>
-              </div>
-              <p className="text-center text-xs text-muted-foreground">
-                O cupom especial é válido para até 3 inscrições do mesmo grupo.
               </p>
             </motion.div>
           )}
@@ -865,8 +985,8 @@ const OikosFormSection = () => {
 
         {/* Skeleton loading para os cards de lote */}
         {lotesLoading ? (
-          <div className="grid grid-cols-3 gap-3 md:gap-6 max-w-3xl mx-auto mb-12">
-            {[1, 2, 3].map((i) => (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-6 max-w-3xl mx-auto mb-12">
+            {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
                 className="rounded-xl border-2 p-5 h-32 bg-gray-200 animate-pulse"
@@ -882,17 +1002,19 @@ const OikosFormSection = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-3 gap-3 md:gap-6 max-w-3xl mx-auto mb-12">
-              {lotes.map((lote) => (
-                <LoteCard
-                  key={lote.id}
-                  lote={lote}
-                  isActive={loteSelecionado === lote.id}
-                  isEnabled={lote.id === loteDisponivelId}
-                  onSelect={() => setLoteSelecionado(lote.id)}
-                  isLoading={lotesLoading}
-                />
-              ))}
+            <div className="flex flex-wrap justify-center gap-3 md:gap-6 max-w-4xl mx-auto mb-12">
+              {lotes
+                .filter((lote) => lote.status !== "indisponivel")
+                .map((lote) => (
+                  <LoteCard
+                    key={lote.id}
+                    lote={lote}
+                    isActive={loteSelecionado === lote.id}
+                    isEnabled={lote.status === "disponivel"}
+                    onSelect={() => setLoteSelecionado(lote.id)}
+                    isLoading={lotesLoading}
+                  />
+                ))}
             </div>
 
             {/* Mensagem de esgotado - só aparece quando o carregamento terminou E realmente não há lotes disponíveis */}
