@@ -18,6 +18,14 @@ const migration5 = readFileSync(
   "utf8",
 ).replace(/\s+/g, " ");
 
+const migrationConditionalStatus = readFileSync(
+  resolve(
+    process.cwd(),
+    "supabase/migrations/20260519_conditional_payment_status.sql",
+  ),
+  "utf8",
+).replace(/\s+/g, " ");
+
 const migration3 = readFileSync(
   resolve(
     process.cwd(),
@@ -240,8 +248,43 @@ describe("create_pentecoste_registration RPC", () => {
     );
   });
 
-  it("defaults payment_status to 'confirmed'", () => {
+  it("defaults payment_status to 'confirmed' in original migration", () => {
     expect(migration5).toContain("'confirmed'");
+  });
+});
+
+describe("migration: conditional payment_status", () => {
+  it("uses CASE to set confirmed when proof URL is present", () => {
+    expect(migrationConditionalStatus).toContain(
+      "CASE WHEN _payment_proof_url IS NOT NULL AND _payment_proof_url != '' THEN 'confirmed' ELSE 'pending' END",
+    );
+  });
+
+  it("sets payment_uploaded_at only when proof URL is provided", () => {
+    expect(migrationConditionalStatus).toContain(
+      "CASE WHEN _payment_proof_url IS NOT NULL AND _payment_proof_url != '' THEN now() ELSE NULL END",
+    );
+  });
+
+  it("replaces create_pentecoste_registration with SECURITY DEFINER", () => {
+    expect(migrationConditionalStatus).toContain(
+      "CREATE OR REPLACE FUNCTION public.create_pentecoste_registration(",
+    );
+    expect(migrationConditionalStatus).toContain("SECURITY DEFINER");
+    expect(migrationConditionalStatus).toContain("SET search_path = public");
+  });
+
+  it("keeps duplicate detection via unique_violation", () => {
+    expect(migrationConditionalStatus).toContain("DUPLICATE_REGISTRATION");
+  });
+
+  it("keeps all validation rules intact", () => {
+    expect(migrationConditionalStatus).toContain("READING_CONFIRMATION_REQUIRED");
+    expect(migrationConditionalStatus).toContain("INVALID_AGE");
+    expect(migrationConditionalStatus).toContain("INVALID_UNDERAGE_DATA");
+    expect(migrationConditionalStatus).toContain("INVALID_ARRIVAL_CONFIGURATION");
+    expect(migrationConditionalStatus).toContain("INVALID_FILE_TYPE");
+    expect(migrationConditionalStatus).toContain("FILE_TOO_LARGE");
   });
 });
 
