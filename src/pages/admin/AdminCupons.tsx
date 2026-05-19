@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Copy, RefreshCw, Pencil, Upload, ExternalLink, Eye, Download } from "lucide-react";
 import { toast } from "sonner";
+import { ReceiptViewer } from "@/components/ReceiptViewer";
 
 const extractFilePathFromUrl = (url: string) => {
   if (url.startsWith("http")) {
@@ -361,9 +362,9 @@ const AdminCupons = () => {
           </DialogHeader>
           <div className="mt-4 flex justify-center">
             {comprovantePreview?.url && (
-              <img
-                src={comprovantePreview.url}
-                alt="Comprovante"
+              <ReceiptViewer
+                url={comprovantePreview.url}
+                alt={`Comprovante - ${comprovantePreview.nome}`}
                 className="max-w-full max-h-[70vh] rounded-lg border"
               />
             )}
