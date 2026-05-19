@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { handleDownloadComprovante, handleViewComprovante, uploadComprovante } from "@/lib/storage";
 import { getNextCouponCode, type Cupom } from "@/services/cupons.service";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { ReceiptViewer } from "@/components/ReceiptViewer";
 
 const AdminCupons = () => {
   const queryClient = useQueryClient();
@@ -270,7 +271,11 @@ const AdminCupons = () => {
           </DialogHeader>
           <div className="mt-4 flex justify-center">
             {comprovantePreview?.url && (
-              <img src={comprovantePreview.url} alt="Comprovante" className="max-w-full max-h-[70vh] rounded-lg border" />
+              <ReceiptViewer
+                url={comprovantePreview.url}
+                alt={`Comprovante - ${comprovantePreview.nome}`}
+                className="max-w-full max-h-[70vh] rounded-lg border"
+              />
             )}
           </div>
         </DialogContent>

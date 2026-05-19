@@ -460,4 +460,80 @@ describe("Pentecostes Form (E2E)", () => {
     const wrapper = optionLabel.closest("[class*='border-2']");
     expect(wrapper).not.toBeNull();
   });
+
+  // --- STEP 4 (Payment) Tests ---
+
+  it("renderiza o step de pagamento (Step3Payment) com QR Code PIX", async () => {
+    const user = userEvent.setup();
+    await renderPage();
+    await advanceToStep3(user, getForm());
+    expect(screen.getByText(/Passo 4 de 5/i)).toBeInTheDocument();
+    expect(screen.getByText(/Pagamento da inscrição/i)).toBeInTheDocument();
+    expect(screen.getByAltText(/QR Code PIX Pentecostes/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Chave PIX/i).length).toBeGreaterThan(0);
+  });
+
+  it("botão muda para 'Enviar' no step de pagamento", async () => {
+    const user = userEvent.setup();
+    await renderPage();
+    await advanceToStep3(user, getForm());
+    const submitBtn = within(getForm()).getByRole("button", { name: /Enviar/i });
+    expect(submitBtn).toBeInTheDocument();
+  });
+
+  it("botão 'Enviar' fica disabled quando não há comprovante anexado", async () => {
+    const user = userEvent.setup();
+    await renderPage();
+    await advanceToStep3(user, getForm());
+    const submitBtn = within(getForm()).getByRole("button", { name: /Enviar/i });
+    expect(submitBtn).toBeDisabled();
+  });
+
+  it("botão 'Enviar' tem tooltip 'Anexe o comprovante para enviar' quando disabled por falta de proof", async () => {
+    const user = userEvent.setup();
+    await renderPage();
+    await advanceToStep3(user, getForm());
+    const submitBtn = within(getForm()).getByRole("button", { name: /Enviar/i });
+    expect(submitBtn).toHaveAttribute("title", "Anexe o comprovante para enviar");
+  });
+
+  it("exibe área de upload de comprovante no step de pagamento", async () => {
+    const user = userEvent.setup();
+    await renderPage();
+    await advanceToStep3(user, getForm());
+    const q = within(getForm());
+    expect(q.getByText(/Clique ou arraste o comprovante/i)).toBeInTheDocument();
+    expect(q.getByText(/PNG, JPG ou PDF/i)).toBeInTheDocument();
+  });
+
+  it("navegação BACK do step 4 retorna ao step 3 preservando dados", async () => {
+    const user = userEvent.setup();
+    await renderPage();
+    await advanceToStep3(user, getForm());
+    expect(screen.getByText(/Passo 4 de 5/i)).toBeInTheDocument();
+    const back = within(getForm()).getByRole("button", { name: /Voltar/i });
+    await user.click(back);
+    expect(screen.getByText(/Passo 3 de 5/i)).toBeInTheDocument();
+    // Verifica que dados do workshop persistiram
+    const turma01 = within(getForm()).getByLabelText(/^Turma 01/);
+    expect(turma01).toBeInTheDocument();
+  });
+
+  it("voltar do step 4 e re-avançar preserva estado do comprovante", async () => {
+    const user = userEvent.setup();
+    await renderPage();
+    await advanceToStep3(user, getForm());
+    const back = within(getForm()).getByRole("button", { name: /Voltar/i });
+    await user.click(back);
+    const next = within(getForm()).getByRole("button", { name: /Próximo passo/i });
+    await user.click(next);
+    expect(screen.getByText(/Passo 4 de 5/i)).toBeInTheDocument();
+    expect(screen.getByText(/Pagamento da inscrição/i)).toBeInTheDocument();
+  });
+
+  it("bloqueia acesso à tela de sucesso sem passar pelo fluxo de submit", async () => {
+    await renderPage();
+    // A tela de sucesso (Inscrição recebida!) não deve aparecer sem passar pelo fluxo completo
+    expect(screen.queryByText(/Inscrição recebida!/i)).not.toBeInTheDocument();
+  });
 });

@@ -16,8 +16,8 @@ export const MetricsCards = ({ metrics, isLoading }: MetricsCardsProps) => {
       color: "text-blue-600",
     },
     {
-      label: "Pagos",
-      value: metrics?.paid,
+      label: "Confirmados",
+      value: metrics?.confirmed,
       icon: CheckCircle,
       color: "text-green-600",
     },

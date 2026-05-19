@@ -15,13 +15,23 @@ const statusConfig: Record<
     variant: "outline",
     className: "border-blue-500 text-blue-700 bg-blue-50",
   },
+  confirmed: {
+    label: "Confirmado",
+    variant: "default",
+    className: "bg-emerald-600 hover:bg-emerald-600 text-white",
+  },
   paid: {
     label: "Pago",
-    variant: "default",
-    className: "bg-green-600 hover:bg-green-600 text-white",
+    variant: "outline",
+    className: "border-green-500 text-green-700 bg-green-50",
   },
   rejected: {
     label: "Rejeitado",
+    variant: "destructive",
+    className: "",
+  },
+  cancelled: {
+    label: "Cancelado",
     variant: "destructive",
     className: "",
   },

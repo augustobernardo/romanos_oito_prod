@@ -1,12 +1,14 @@
 import { useState, useCallback, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { MetricsCards } from "./MetricsCards";
 import { RegistrationFilters } from "./RegistrationFilters";
 import { RegistrationsTable } from "./RegistrationsTable";
 import { RegistrationDetailsDrawer } from "./RegistrationDetailsDrawer";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { PentecosteService } from "@/services/admin/pentecoste.service";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/sonner";
 import { ChevronLeft, ChevronRight, RefreshCw, AlertCircle } from "lucide-react";
 import type { PentecosteRegistration, RegisterFilters } from "@/types/pentecoste";
 
@@ -28,11 +30,17 @@ const PentecosteAdmin = () => {
   const [selectedRegistration, setSelectedRegistration] =
     useState<PentecosteRegistration | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] =
+    useState<PentecosteRegistration | null>(null);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+
+  const queryClient = useQueryClient();
 
   const {
     data: registrationData,
     isLoading: registrationsLoading,
     isError: registrationsError,
+    isFetching: registrationsFetching,
     refetch: refetchRegistrations,
   } = useQuery({
     queryKey: ["pentecoste-registrations", page, filters],
@@ -42,11 +50,47 @@ const PentecosteAdmin = () => {
   const {
     data: metrics,
     isLoading: metricsLoading,
+    isFetching: metricsFetching,
     refetch: refetchMetrics,
   } = useQuery({
     queryKey: ["pentecoste-metrics"],
     queryFn: PentecosteService.getMetrics,
     staleTime: 30_000,
+  });
+
+  const invalidateAll = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["pentecoste-registrations"] });
+    queryClient.invalidateQueries({ queryKey: ["pentecoste-metrics"] });
+  }, [queryClient]);
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await PentecosteService.deleteRegistration(id);
+    },
+    onMutate: (id) => {
+      setDeletingIds((prev) => new Set(prev).add(id));
+    },
+    onSuccess: () => {
+      toast.success("Inscrição removida com sucesso.");
+      invalidateAll();
+    },
+    onError: (err: unknown) => {
+      console.error("Delete registration error:", err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "Erro ao remover inscrição";
+      toast.error(message);
+    },
+    onSettled: (_data, _error, id) => {
+      setDeletingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    },
   });
 
   const totalPages = Math.max(
@@ -72,10 +116,22 @@ const PentecosteAdmin = () => {
     setDrawerOpen(true);
   }, []);
 
+  const handleDeleteRequest = useCallback((reg: PentecosteRegistration) => {
+    setDeleteTarget(reg);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(() => {
+    if (!deleteTarget) return;
+    deleteMutation.mutate(deleteTarget.id);
+    setDeleteTarget(null);
+  }, [deleteTarget, deleteMutation]);
+
   const registrations = useMemo(
     () => registrationData?.registrations ?? [],
     [registrationData],
   );
+
+  const isRefreshing = registrationsFetching || metricsFetching;
 
   return (
     <AdminLayout>
@@ -91,9 +147,10 @@ const PentecosteAdmin = () => {
               refetchRegistrations();
               refetchMetrics();
             }}
+            disabled={isRefreshing}
             className="shrink-0"
           >
-            <RefreshCw className="h-4 w-4 mr-1" />
+            <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? "animate-spin" : ""}`} />
             Atualizar
           </Button>
         </div>
@@ -151,6 +208,8 @@ const PentecosteAdmin = () => {
             <RegistrationsTable
               registrations={registrations}
               onSelect={handleSelect}
+              onDelete={handleDeleteRequest}
+              deletingIds={deletingIds}
             />
 
             {totalPages > 1 && (
@@ -186,6 +245,17 @@ const PentecosteAdmin = () => {
         registration={selectedRegistration}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Remover inscrição"
+        description={`Tem certeza que deseja remover a inscrição de ${deleteTarget?.fullname ?? ""}?`}
+        warning="Esta ação não poderá ser desfeita."
+        cancelLabel="Cancelar"
+        confirmLabel="Remover"
+        onConfirm={handleDeleteConfirm}
       />
     </AdminLayout>
   );

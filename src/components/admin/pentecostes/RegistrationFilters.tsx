@@ -17,8 +17,11 @@ interface RegistrationFiltersProps {
 }
 
 const statusOptions = [
+  { value: "pending", label: "Pendente" },
   { value: "awaiting_confirmation", label: "Aguardando" },
+  { value: "confirmed", label: "Confirmado" },
   { value: "paid", label: "Pago" },
+  { value: "rejected", label: "Rejeitado" },
   { value: "manual_card_payment", label: "Cartão Manual" },
 ];
 

@@ -89,7 +89,7 @@ export const PentecosteService = {
   async updatePaymentStatus(id: string, status: PentecostePaymentStatus) {
     const { data, error } = await supabase.rpc(
       "update_pentecoste_payment_status",
-      { _registration_id: id, _new_status: status }
+      { _registration_id: id, _new_status: status },
     );
 
     if (error) throw error;
@@ -102,6 +102,22 @@ export const PentecosteService = {
     return result;
   },
 
+  async deleteRegistration(id: string) {
+    const { data, error } = await supabase
+      .from("pentecoste_registrations")
+      .delete()
+      .eq("id", id)
+      .select("id");
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      throw new Error(
+        "Não foi possível remover o registro. Execute a migration SQL de policies.",
+      );
+    }
+  },
+
   async getMetrics(): Promise<PentecosteMetrics> {
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
@@ -111,6 +127,7 @@ export const PentecosteService = {
       pendingRes,
       awaitingRes,
       paidRes,
+      confirmedRes,
       allRes,
       todayRes,
     ] = await Promise.all([
@@ -131,6 +148,10 @@ export const PentecosteService = {
         .eq("payment_status", "paid"),
       supabase
         .from("pentecoste_registrations")
+        .select("id", { count: "exact", head: true })
+        .eq("payment_status", "confirmed"),
+      supabase
+        .from("pentecoste_registrations")
         .select("date_of_birth"),
       supabase
         .from("pentecoste_registrations")
@@ -147,6 +168,7 @@ export const PentecosteService = {
       pending: pendingRes.count ?? 0,
       awaiting_confirmation: awaitingRes.count ?? 0,
       paid: paidRes.count ?? 0,
+      confirmed: confirmedRes.count ?? 0,
       underage,
       created_today: todayRes.count ?? 0,
     };

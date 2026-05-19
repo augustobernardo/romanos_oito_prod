@@ -104,6 +104,13 @@ export const pentecosteFormMachine = setup({
     },
   },
   actions: {
+    logTransition: (_, event?: FormEvent) => {
+      if (import.meta.env.DEV || import.meta.env.MODE === "development") {
+        console.debug(
+          `[PentecosteMachine] ${event ? `Event: ${event.type}` : "Entered state"}`,
+        );
+      }
+    },
     updateField: assign({
       read_descriptions_confirmation: ({ context, event }) =>
         event.type === "UPDATE_FIELD" && event.field === "read_descriptions_confirmation"
@@ -261,6 +268,7 @@ export const pentecosteFormMachine = setup({
       },
     },
     step3_event_info: {
+      entry: "logTransition",
       on: {
         NEXT: {
           target: "step4_payment",
@@ -275,10 +283,12 @@ export const pentecosteFormMachine = setup({
       },
     },
     step4_payment: {
+      entry: "logTransition",
       on: {
         SUBMIT: {
           target: "uploading_proof",
           guard: "canSubmit",
+          actions: "logTransition",
         },
         BACK: {
           target: "step3_event_info",
@@ -323,7 +333,7 @@ export const pentecosteFormMachine = setup({
       },
     },
     submission_success: {
-      entry: "resetContext",
+      entry: "logTransition",
       on: {
         RESET: {
           target: "step1_reading",

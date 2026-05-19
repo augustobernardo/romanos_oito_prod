@@ -6,6 +6,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -19,7 +25,9 @@ import { PentecosteService } from "@/services/admin/pentecoste.service";
 import { handleViewComprovante, handleDownloadComprovante, PENTECOSTE_STORAGE_BUCKET } from "@/lib/storage";
 import { toast } from "@/components/ui/sonner";
 import { calculateAge } from "@/utils/dateUtils";
-import { Download, Eye, X, Loader2 } from "lucide-react";
+import { Download, Eye, Loader2 } from "lucide-react";
+import { ReceiptViewer } from "@/components/ReceiptViewer";
+import { statusLabels, DRAWER_STATUS_OPTIONS } from "./statusTransitions";
 import type {
   PentecosteRegistration,
   PentecostePaymentStatus,
@@ -30,22 +38,6 @@ interface RegistrationDetailsDrawerProps {
   open: boolean;
   onClose: () => void;
 }
-
-const nextStatus: Record<PentecostePaymentStatus, PentecostePaymentStatus[]> = {
-  pending: ["awaiting_confirmation"],
-  awaiting_confirmation: ["paid", "rejected"],
-  paid: [],
-  rejected: ["awaiting_confirmation"],
-  manual_card_payment: ["paid"],
-};
-
-const statusLabels: Record<PentecostePaymentStatus, string> = {
-  pending: "Pendente",
-  awaiting_confirmation: "Aguardando",
-  paid: "Pago",
-  rejected: "Rejeitado",
-  manual_card_payment: "Cartão Manual",
-};
 
 export const RegistrationDetailsDrawer = ({
   registration,
@@ -76,34 +68,36 @@ export const RegistrationDetailsDrawer = ({
       queryClient.invalidateQueries({ queryKey: ["pentecoste-metrics"] });
     },
     onError: (err) => {
-      toast.error(
-        err instanceof Error ? err.message : "Erro ao atualizar status"
-      );
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "Erro ao atualizar status";
+      toast.error(message);
     },
   });
 
   if (!registration) return null;
 
-  const availableStatuses =
-    nextStatus[registration.payment_status] ?? [];
   const isUnderage = calculateAge(registration.date_of_birth) < 18;
 
   const loadProof = async () => {
-    if (!registration.payment_proof_url || proofUrl) return;
-    setProofLoading(true);
-    try {
-      await handleViewComprovante(
-        registration.payment_proof_url,
-        registration.fullname,
-        (loading) => setProofLoading(loading),
-        (url) => setProofUrl(url),
-        PENTECOSTE_STORAGE_BUCKET,
-      );
-    } catch {
-      toast.error("Erro ao carregar comprovante");
-    } finally {
-      setProofLoading(false);
+    if (!registration.payment_proof_url) return;
+    if (proofUrl) {
+      setPreviewOpen(true);
+      return;
     }
+    await handleViewComprovante(
+      registration.payment_proof_url,
+      registration.fullname,
+      (loading) => setProofLoading(loading),
+      (url) => {
+        setProofUrl(url);
+        setPreviewOpen(true);
+      },
+      PENTECOSTE_STORAGE_BUCKET,
+    );
   };
 
   const onDownloadProof = async () => {
@@ -237,43 +231,41 @@ export const RegistrationDetailsDrawer = ({
               </dl>
 
               {/* Status update */}
-              {availableStatuses.length > 0 && (
-                <div className="mt-3 flex items-center gap-2">
-                  <Select
-                    value={newStatus || undefined}
-                    onValueChange={(v) =>
-                      setNewStatus(v as PentecostePaymentStatus)
+              <div className="mt-3 flex items-center gap-2">
+                <Select
+                  value={newStatus || undefined}
+                  onValueChange={(v) =>
+                    setNewStatus(v as PentecostePaymentStatus)
+                  }
+                >
+                  <SelectTrigger className="flex-1 text-xs">
+                    <SelectValue placeholder="Alterar status..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DRAWER_STATUS_OPTIONS.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {statusLabels[s]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  disabled={!newStatus || statusMutation.isPending}
+                  onClick={() => {
+                    if (newStatus) {
+                      statusMutation.mutate(newStatus);
+                      setNewStatus("");
                     }
-                  >
-                    <SelectTrigger className="flex-1 text-xs">
-                      <SelectValue placeholder="Alterar status..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableStatuses.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {statusLabels[s]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    size="sm"
-                    disabled={!newStatus || statusMutation.isPending}
-                    onClick={() => {
-                      if (newStatus) {
-                        statusMutation.mutate(newStatus);
-                        setNewStatus("");
-                      }
-                    }}
-                  >
-                    {statusMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      "Atualizar"
-                    )}
-                  </Button>
-                </div>
-              )}
+                  }}
+                >
+                  {statusMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Atualizar"
+                  )}
+                </Button>
+              </div>
             </section>
 
             {/* Payment proof */}
@@ -283,19 +275,13 @@ export const RegistrationDetailsDrawer = ({
                   Comprovante
                 </h3>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (proofUrl) {
-                        setPreviewOpen(true);
-                      } else {
-                        loadProof();
-                      }
-                    }}
-                    disabled={proofLoading}
-                    className="flex-1"
-                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={loadProof}
+                      disabled={proofLoading}
+                      className="flex-1"
+                    >
                     {proofLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-1" />
                     ) : (
@@ -318,28 +304,25 @@ export const RegistrationDetailsDrawer = ({
         </SheetContent>
       </Sheet>
 
-      {/* Full-screen proof preview */}
-      {previewOpen && proofUrl && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-          onClick={() => setPreviewOpen(false)}
-        >
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-4 right-4 text-white hover:bg-white/20 z-50"
-            onClick={() => setPreviewOpen(false)}
-          >
-            <X className="h-6 w-6" />
-          </Button>
-          <img
-            src={proofUrl}
-            alt="Comprovante de pagamento"
-            className="max-h-[90vh] max-w-full rounded-lg object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
+      {/* Proof preview dialog */}
+      <Dialog open={previewOpen && !!proofUrl} onOpenChange={(open) => !open && setPreviewOpen(false)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="font-normal">
+              Comprovante - {registration.fullname}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-4 flex justify-center">
+            {proofUrl && (
+              <ReceiptViewer
+                url={proofUrl}
+                filename={registration.payment_proof_filename}
+                className="max-w-full max-h-[70vh] rounded-lg border"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

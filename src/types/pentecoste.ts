@@ -1,8 +1,10 @@
 export type PentecostePaymentStatus =
   | "pending"
   | "awaiting_confirmation"
+  | "confirmed"
   | "paid"
   | "rejected"
+  | "cancelled"
   | "manual_card_payment";
 
 export type PentecostePaymentMethod = "pix" | "card_manual";
@@ -48,6 +50,7 @@ export interface PentecosteMetrics {
   pending: number;
   awaiting_confirmation: number;
   paid: number;
+  confirmed: number;
   underage: number;
   created_today: number;
 }

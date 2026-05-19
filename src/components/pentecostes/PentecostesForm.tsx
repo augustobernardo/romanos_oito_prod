@@ -6,6 +6,7 @@ import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { WHATSAPP_NUMBER } from "@/config/constants";
+import { validateStepForSubmit } from "@/services/pentecostesFlow";
 import { usePentecostesForm } from "./usePentecostesForm";
 import VigiliaInfoSummary from "./VigiliaInfoSummary";
 import Step0Leitura from "./steps/Step0Leitura";
@@ -36,17 +37,29 @@ const PentecostesForm = () => {
     handleFileUpload,
     handleRemoveFile,
     submissionError,
+    machineState,
   } = usePentecostesForm();
   useWatch({ control: form.control });
 
-  const handlePrimary = async () => {
+  const handlePrimary = useCallback(async () => {
     if (isLastStep) {
+      const validation = validateStepForSubmit(
+        String(machineState?.value ?? ""),
+        currentStep,
+      );
+      if (!validation.valid) {
+        console.error(
+          "[PentecostesForm] Submit bloqueado:",
+          validation.reason,
+        );
+        return;
+      }
       if (!canSubmit()) return;
       submit();
     } else {
       await next();
     }
-  };
+  }, [isLastStep, canSubmit, currentStep, submit, next, machineState]);
 
   const handleConfirmationChange = useCallback(
     (checked: boolean) => {
@@ -57,11 +70,17 @@ const PentecostesForm = () => {
 
   const isButtonDisabled = isSubmitting || (isLastStep ? !canSubmit() : !isStepValid());
 
+  const submitBlockedByProof = isLastStep && !isSubmitting && !canSubmit();
+
   const buttonLabel = isSubmitting
     ? "Enviando..."
     : isLastStep
       ? "Enviar"
       : "Próximo";
+
+  const buttonHint = submitBlockedByProof
+    ? "Anexe o comprovante para enviar"
+    : undefined;
 
   if (isSuccess) {
     return (
@@ -211,6 +230,7 @@ const PentecostesForm = () => {
               onClick={handlePrimary}
               disabled={isButtonDisabled}
               aria-label={isLastStep ? "Enviar inscrição" : "Próximo passo"}
+              title={buttonHint}
               className="rounded-full border-2 border-pentecoste-navy bg-pentecoste-red px-10 font-display uppercase tracking-wide text-pentecoste-paper shadow-[3px_3px_0_0_rgba(27,37,65,1)] transition-transform hover:bg-pentecoste-red-dark hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_rgba(27,37,65,1)]"
             >
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

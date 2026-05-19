@@ -42,6 +42,7 @@ import {
 } from "../ui/dialog";
 import { Label } from "../ui/label";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { ReceiptViewer } from "@/components/ReceiptViewer";
 import {
   columnLabels,
   createUniqueKey,
@@ -449,9 +450,9 @@ const AdminInscricoes = () => {
           </DialogHeader>
           <div className="mt-4 flex justify-center">
             {comprovantePreview?.url && (
-              <img
-                src={comprovantePreview.url}
-                alt="Comprovante"
+              <ReceiptViewer
+                url={comprovantePreview.url}
+                alt={`Comprovante - ${comprovantePreview.nome}`}
                 className="max-w-full max-h-[70vh] rounded-lg border"
               />
             )}
