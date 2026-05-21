@@ -5,17 +5,27 @@ import {
   getMinBirthDateForLote,
 } from "@/utils/validateParticipantAge";
 
-describe("validateParticipantAge — regra padrão (17 anos em 01/01/2026)", () => {
-  it("permite usuário com 17 anos completos em 01/01/2026 (nascido em 2009-01-01)", () => {
+describe("validateParticipantAge — regra padrão (17 anos até 05/06/2026)", () => {
+  it("permite usuário nascido em 2009-05-25 (completa 17 antes do evento)", () => {
+    const result = validateParticipantAge("2009-05-25");
+    expect(result.valid).toBe(true);
+  });
+
+  it("permite usuário que completa 17 anos exatamente no dia do evento (nascido em 2009-06-05)", () => {
+    const result = validateParticipantAge("2009-06-05");
+    expect(result.valid).toBe(true);
+  });
+
+  it("permite usuário nascido em 2009-01-01 (completa 17 antes do evento)", () => {
     const result = validateParticipantAge("2009-01-01");
     expect(result.valid).toBe(true);
   });
 
-  it("bloqueia usuário que completa 17 anos após 01/01/2026 (nascido em 2009-01-02)", () => {
-    const result = validateParticipantAge("2009-01-02");
+  it("bloqueia usuário que completa 17 anos após o evento (nascido em 2009-06-06)", () => {
+    const result = validateParticipantAge("2009-06-06");
     expect(result.valid).toBe(false);
     expect(result.message).toBe(
-      "É necessário ter no mínimo 17 anos completos para realizar esta inscrição.",
+      "É necessário ter 17 anos completos para realizar a inscrição.",
     );
   });
 
@@ -69,8 +79,8 @@ describe("validateParticipantAge — regra especial LOTE#0016 (Limitado)", () =>
 });
 
 describe("validateParticipantAge — lote não especial trata como regra padrão", () => {
-  it("aplica regra padrão para um lote comum (não 6)", () => {
-    const result = validateParticipantAge("2009-01-02", 5);
+  it("aplica regra padrão para um lote comum (não 6): bloqueia nascido em 2009-06-06", () => {
+    const result = validateParticipantAge("2009-06-06", 5);
     expect(result.valid).toBe(false);
   });
 
@@ -86,9 +96,9 @@ describe("validateParticipantAge — lote não especial trata como regra padrão
 });
 
 describe("getMaxBirthDateForLote", () => {
-  it("retorna 2009-01-01 para regra padrão", () => {
+  it("retorna 2009-06-05 para regra padrão", () => {
     const maxDate = getMaxBirthDateForLote(5);
-    expect(maxDate).toBe("2009-01-01");
+    expect(maxDate).toBe("2009-06-05");
   });
 
   it("retorna null quando loteId é null", () => {
