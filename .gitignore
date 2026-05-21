@@ -5,6 +5,6 @@ dist
 *.zip
 
 opencode.json
-AGENTS.md
-.agents
+# AGENTS.md
+# .agents
 supabase

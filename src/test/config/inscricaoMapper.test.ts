@@ -31,33 +31,34 @@ describe("calculateAge", () => {
   });
 });
 
+const validFormData = {
+  nome: "Maria Oliveira",
+  dataNascimento: "1995-06-20",
+  telefone: "11912345678",
+  instagram: "@maria",
+  comunidade: "Paróquia São José",
+  cidadeEstado: "São Paulo - SP",
+  enderecoCompleto: "Rua das Flores, 123",
+  comoConheceu: "amigo",
+  comoConheceuOutro: "",
+  nomeMae: "Ana Oliveira",
+  numeroMae: "11912345678",
+  nomePai: "Carlos Oliveira",
+  numeroPai: "11912345678",
+  numeroResponsavelProximo: "",
+  isCatolico: "sim",
+  isCatolicoOutro: "",
+  participaMovimento: "Comunidade Vida",
+  fezRetiro: "sim",
+  fezRetiroOutro: "",
+  nomePessoaEmergencia: "João Silva",
+  grauParentescoEmergencia: "Irmão",
+  numeroEmergencia: "11912345678",
+  tamanhoCamisa: "M",
+  expectativaOikos: "Crescer na fé",
+};
+
 describe("mapFormToInscricao", () => {
-  const validFormData = {
-    nome: "Maria Oliveira",
-    dataNascimento: "1995-06-20",
-    telefone: "11912345678",
-    instagram: "@maria",
-    comunidade: "Paróquia São José",
-    cidadeEstado: "São Paulo - SP",
-    enderecoCompleto: "Rua das Flores, 123",
-    comoConheceu: "amigo",
-    comoConheceuOutro: "",
-    nomeMae: "Ana Oliveira",
-    numeroMae: "11912345678",
-    nomePai: "Carlos Oliveira",
-    numeroPai: "11912345678",
-    numeroResponsavelProximo: "",
-    isCatolico: "sim",
-    isCatolicoOutro: "",
-    participaMovimento: "Comunidade Vida",
-    fezRetiro: "sim",
-    fezRetiroOutro: "",
-    nomePessoaEmergencia: "João Silva",
-    grauParentescoEmergencia: "Irmão",
-    numeroEmergencia: "11912345678",
-    tamanhoCamisa: "M",
-    expectativaOikos: "Crescer na fé",
-  };
 
   it("mapeia todos os campos corretamente", () => {
     const result = mapFormToInscricao(1, validFormData, "pix", "processando");
@@ -119,5 +120,48 @@ describe("mapFormToInscricao", () => {
   it("define idade corretamente baseado na data de nascimento", () => {
     const result = mapFormToInscricao(1, validFormData, "pix", "processando");
     expect(result.idade).toBeGreaterThan(0);
+  });
+});
+
+describe("mapFormToInscricao — validação de idade", () => {
+  const youngFormData = {
+    ...validFormData,
+    dataNascimento: "2009-06-06",
+  };
+
+  const permitedFormData = {
+    ...validFormData,
+    dataNascimento: "2009-05-25",
+  };
+
+  const exactly16FormData = {
+    ...validFormData,
+    dataNascimento: "2010-06-07",
+  };
+
+  it("bloqueia usuário que completa 17 após 05/06/2026 (lote normal)", () => {
+    expect(() =>
+      mapFormToInscricao(1, youngFormData, "pix", "processando"),
+    ).toThrow(
+      "É necessário ter 17 anos completos para realizar a inscrição.",
+    );
+  });
+
+  it("permite usuário que completa 17 antes de 05/06/2026 (lote normal)", () => {
+    const result = mapFormToInscricao(1, permitedFormData, "pix", "processando");
+    expect(result.data_nascimento).toBe("2009-05-25");
+  });
+
+  it("bloqueia usuário com idade incorreta no lote especial #6", () => {
+    expect(() =>
+      mapFormToInscricao(6, youngFormData, "pix", "processando"),
+    ).toThrow(
+      "Para este lote, é necessário ter exatamente 16 anos em 07/06/2026.",
+    );
+  });
+
+  it("permite usuário com exatamente 16 anos em 07/06/2026 (lote #6)", () => {
+    const result = mapFormToInscricao(6, exactly16FormData, "pix", "processando");
+    expect(result.lote_id).toBe(6);
   });
 });

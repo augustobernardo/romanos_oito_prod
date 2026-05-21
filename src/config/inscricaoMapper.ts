@@ -1,7 +1,9 @@
 import type { TablesInsert } from "@/integrations/supabase/types";
 import { OIKOS_EVENT_ID } from "./constants";
 import { calculateAge, calculateAgeAtReferenceDate } from "@/utils/dateUtils";
-import { AGE_RULES } from "./ageRules";
+import { AGE_RULES, AGE_ERROR_MESSAGES } from "./ageRules";
+
+export const ALLOWED_PAYMENT_METHODS = ["pix", "cupom"] as const;
 
 type FormValues = {
   nome: string;
@@ -51,9 +53,13 @@ export const mapFormToInscricao = (
 
   if (!ageValid) {
     const message = isSpecial
-      ? "Para este lote, é necessário ter exatamente 16 anos em 07/06/2026."
-      : "É necessário ter no mínimo 17 anos completos para realizar esta inscrição.";
+      ? AGE_ERROR_MESSAGES.SPECIAL
+      : AGE_ERROR_MESSAGES.DEFAULT;
     throw new Error(message);
+  }
+
+  if (!ALLOWED_PAYMENT_METHODS.includes(method)) {
+    throw new Error(`Método de pagamento inválido: ${method}. Apenas PIX é aceito.`);
   }
 
   return ({

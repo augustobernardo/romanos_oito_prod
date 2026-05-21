@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { CheckCircle, Copy, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PIX_KEY as ENV_PIX_KEY } from "@/utils/pix";
+import { copyToClipboard } from "@/utils/copyToClipboard";
 
 type CopyState = "idle" | "copying" | "copied" | "copy_failed";
 
@@ -9,28 +10,6 @@ interface PixCopyButtonProps {
   pixKey?: string;
   className?: string;
 }
-
-const fallbackCopy = (text: string): boolean => {
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.style.position = "fixed";
-  textarea.style.top = "0";
-  textarea.style.left = "0";
-  textarea.style.opacity = "0.01";
-  textarea.style.pointerEvents = "none";
-  textarea.readOnly = true;
-  document.body.appendChild(textarea);
-  textarea.focus();
-  textarea.select();
-  try {
-    document.execCommand("copy");
-    return true;
-  } catch {
-    return false;
-  } finally {
-    document.body.removeChild(textarea);
-  }
-};
 
 export const PixCopyButton = ({ pixKey = ENV_PIX_KEY, className }: PixCopyButtonProps) => {
   const [copyState, setCopyState] = useState<CopyState>("idle");
@@ -42,7 +21,7 @@ export const PixCopyButton = ({ pixKey = ENV_PIX_KEY, className }: PixCopyButton
     };
   }, []);
 
-  const handleCopy = useCallback(() => {
+  const handleCopy = useCallback(async () => {
     if (!pixKey) {
       console.warn(
         "[PixCopyButton] pixKey is empty — clipboard copy aborted. Check VITE_PIX_KEY env var."
@@ -52,19 +31,10 @@ export const PixCopyButton = ({ pixKey = ENV_PIX_KEY, className }: PixCopyButton
 
     setCopyState("copying");
 
-    const finish = (success: boolean) => {
-      setCopyState(success ? "copied" : "copy_failed");
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => setCopyState("idle"), 2500);
-    };
-
-    if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(pixKey)
-        .then(() => finish(true))
-        .catch(() => finish(fallbackCopy(pixKey)));
-    } else {
-      finish(fallbackCopy(pixKey));
-    }
+    const success = await copyToClipboard(pixKey);
+    setCopyState(success ? "copied" : "copy_failed");
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => setCopyState("idle"), 2500);
   }, [pixKey]);
 
   const isDisabled = copyState === "copying" || copyState === "copied";
