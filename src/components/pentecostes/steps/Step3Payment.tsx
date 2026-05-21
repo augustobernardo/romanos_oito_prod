@@ -9,8 +9,10 @@ import {
   QrCode,
   Image,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { PIX_KEY_PENTECOSTES, PIX_RECEIVER_PENTECOSTES_NAME } from "@/utils/pix";
+import { copyToClipboard } from "@/utils/copyToClipboard";
 import qrCodePentecostes from "@/assets/pentecoste/QR_CODE_PIX_PENTECOSTES.jpg";
 
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "application/pdf"];
@@ -37,11 +39,12 @@ const Step3Payment = ({
   onFileUpload,
   onRemoveFile,
 }: Step3PaymentProps) => {
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copying" | "copied" | "copy_failed">("idle");
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (paymentProofFile && paymentProofFile.type.startsWith("image/")) {
@@ -52,14 +55,18 @@ const Step3Payment = ({
     setPreviewUrl(null);
   }, [paymentProofFile]);
 
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
+
   const handleCopyPixKey = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(PIX_KEY_PENTECOSTES);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    } catch {
-      setError("Erro ao copiar. Tente novamente.");
-    }
+    setCopyState("copying");
+    const success = await copyToClipboard(PIX_KEY_PENTECOSTES);
+    setCopyState(success ? "copied" : "copy_failed");
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    copyTimeoutRef.current = setTimeout(() => setCopyState("idle"), 2500);
   }, []);
 
   const handleFileInputChange = useCallback(
@@ -175,13 +182,24 @@ const Step3Payment = ({
         <button
           type="button"
           onClick={handleCopyPixKey}
-          className="group flex w-full items-center justify-between border-2 border-pentecoste-navy bg-transparent p-4 transition-colors duration-200 hover:border-pentecoste-red hover:bg-pentecoste-red/5"
+          disabled={copyState === "copying" || copyState === "copied"}
+          className="group flex w-full items-center justify-between border-2 border-pentecoste-navy bg-transparent p-4 transition-colors duration-200 hover:border-pentecoste-red hover:bg-pentecoste-red/5 disabled:opacity-70"
         >
           <span className="font-mono text-sm uppercase tracking-[0.15em] text-pentecoste-navy">
-            {copied ? (
+            {copyState === "copying" ? (
+              <span className="flex items-center gap-2 text-pentecoste-red">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Copiando...
+              </span>
+            ) : copyState === "copied" ? (
               <span className="flex items-center gap-2 text-pentecoste-red">
                 <Check className="h-4 w-4" />
                 Chave PIX copiada!
+              </span>
+            ) : copyState === "copy_failed" ? (
+              <span className="flex items-center gap-2 text-pentecoste-red">
+                <AlertTriangle className="h-4 w-4" />
+                Falha ao copiar
               </span>
             ) : (
               <span className="flex items-center gap-2">
@@ -191,7 +209,11 @@ const Step3Payment = ({
             )}
           </span>
           <span className="text-xs tracking-wider text-pentecoste-navy/50">
-            {copied ? "" : "Clique para copiar"}
+            {copyState === "idle"
+              ? "Clique para copiar"
+              : copyState === "copy_failed"
+                ? "Tente novamente"
+                : ""}
           </span>
         </button>
       </div>
