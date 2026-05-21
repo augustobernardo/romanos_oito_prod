@@ -6,7 +6,7 @@
 - **shadcn/ui** + Radix UI — components at `src/components/ui/`
 - **TanStack React Query** for server state
 - **React Hook Form + Zod** for forms
-- **Stripe** for payments
+- **PIX** only for payments (no Stripe/card)
 - **Tailwind CSS 3** for styling
 - **Vitest + Testing Library** for tests (NOT Jest)
 
@@ -55,7 +55,6 @@ Use **`InscricoesService.insertInscricao()`** — inserts directly to Supabase v
 
 ## Environment Variables
 - **Supabase**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (note: **NOT** `VITE_SUPABASE_ANON_KEY` — the README is wrong on this)
-- **Stripe**: `VITE_STRIPE_PUBLIC_KEY`
 - **Pix**: `VITE_PIX_KEY`, `VITE_PIX_RECEIVER_NAME`
 - **WhatsApp**: `VITE_WHATSAPP_NUMBER`
 - **API**: `VITE_API_BASE_URL` (not currently used in prod)

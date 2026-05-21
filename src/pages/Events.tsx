@@ -53,7 +53,7 @@ type EventoItem = Record<string, unknown>;
 const addRoteForOIKOS = (eventos: EventoItem[]) => {
   return eventos.map((evento) => {
     if (evento.nome === "OIKOS 2026") {
-      return { ...evento, rota: "/eventos/oikos-2026" };
+      return { ...evento, rota: "/oikos" };
     }
     return { ...evento, rota: `/eventos/${evento.id}` };
   });
