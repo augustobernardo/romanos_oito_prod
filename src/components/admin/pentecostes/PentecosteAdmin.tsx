@@ -9,7 +9,15 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { PentecosteService } from "@/services/admin/pentecoste.service";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
-import { ChevronLeft, ChevronRight, RefreshCw, AlertCircle } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  AlertCircle,
+  FileDown,
+  Loader2,
+} from "lucide-react";
+import { exportToExcel } from "@/services/admin/exportPentecostesRegistrations";
 import type { PentecosteRegistration, RegisterFilters } from "@/types/pentecoste";
 
 const PAGE_SIZE = 20;
@@ -33,6 +41,7 @@ const PentecosteAdmin = () => {
   const [deleteTarget, setDeleteTarget] =
     useState<PentecosteRegistration | null>(null);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [exporting, setExporting] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -133,6 +142,22 @@ const PentecosteAdmin = () => {
 
   const isRefreshing = registrationsFetching || metricsFetching;
 
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    try {
+      await exportToExcel();
+      toast.success("Exportação concluída com sucesso.");
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Falha ao exportar inscrições.";
+      toast.error(message);
+    } finally {
+      setExporting(false);
+    }
+  }, []);
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -140,19 +165,35 @@ const PentecosteAdmin = () => {
           <h1 className="font-display text-2xl font-bold text-foreground">
             Pentecoste
           </h1>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              refetchRegistrations();
-              refetchMetrics();
-            }}
-            disabled={isRefreshing}
-            className="shrink-0"
-          >
-            <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? "animate-spin" : ""}`} />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              disabled={exporting}
+              className="shrink-0"
+            >
+              {exporting ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <FileDown className="h-4 w-4 mr-1" />
+              )}
+              Exportar Excel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                refetchRegistrations();
+                refetchMetrics();
+              }}
+              disabled={isRefreshing}
+              className="shrink-0"
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+          </div>
         </div>
 
         <MetricsCards metrics={metrics ?? null} isLoading={metricsLoading} />
