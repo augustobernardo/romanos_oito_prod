@@ -62,15 +62,15 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
   const [isDark, setIsDark] = useState(() =>
     document.documentElement.classList.contains("dark"),
   );
-  const [collapsed, setCollapsed] = useState(() =>
-    localStorage.getItem("sidebar-collapsed") === "true",
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem("sidebar-collapsed") === "true",
   );
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [autoExpanded, setAutoExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isGroupActive = useCallback(
-    (group: typeof navGroups[number]) =>
+    (group: (typeof navGroups)[number]) =>
       group.items.some((item) => location.pathname === item.href),
     [location.pathname],
   );
@@ -271,7 +271,12 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                 >
-                  <group.icon className={cn("shrink-0", collapsed ? "h-5 w-5" : "h-4 w-4")} />
+                  <group.icon
+                    className={cn(
+                      "shrink-0",
+                      collapsed ? "h-5 w-5" : "h-4 w-4",
+                    )}
+                  />
                   {!collapsed && (
                     <>
                       <span className="flex-1 text-left">{group.label}</span>
@@ -320,7 +325,10 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
             </p>
           )}
           <div
-            className={cn("flex", collapsed ? "flex-col items-center gap-1" : "gap-1")}
+            className={cn(
+              "flex",
+              collapsed ? "flex-col items-center gap-1" : "gap-1",
+            )}
           >
             <Button
               variant="ghost"
@@ -353,7 +361,10 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col md:hidden">
         {/* Mobile header */}
         <header className="border-b border-border bg-card p-3 flex items-center justify-between">
-          <Link to="/" className="font-display text-lg font-semibold text-foreground">
+          <Link
+            to="/"
+            className="font-display text-lg font-semibold text-foreground"
+          >
             Romanos Oito
           </Link>
           <div className="flex items-center gap-1">
@@ -364,7 +375,11 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
               onClick={toggleTheme}
               title="Alternar tema"
             >
-              {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              {isDark ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
             </Button>
             <Button
               variant="ghost"
@@ -373,7 +388,11 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
               onClick={() => setMenuOpen((v) => !v)}
               title={menuOpen ? "Fechar menu" : "Abrir menu"}
             >
-              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {menuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
             </Button>
           </div>
         </header>
@@ -392,7 +411,10 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
                 variant="outline"
                 size="sm"
                 className="w-full justify-start"
-                onClick={() => { closeMenu(); handleSignOut(); }}
+                onClick={() => {
+                  closeMenu();
+                  handleSignOut();
+                }}
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sair

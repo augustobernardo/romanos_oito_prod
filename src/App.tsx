@@ -8,7 +8,6 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Home from "./pages/Home";
 import OikosLanding from "./pages/OikosLanding";
-import Pentecostes from "./pages/Pentecostes";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./components/admin/AdminDashboard";
 import AdminEventos from "./components/admin/AdminEventos";
@@ -39,7 +38,6 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/oikos" element={<OikosLanding />} />
-              <Route path="/pentecostes" element={<Pentecostes />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route
                 path="/admin"
